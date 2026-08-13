@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Baithani's Doorprize Picker" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="assets/apple-touch-icon.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="assets/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="assets/favicon-16x16.png"
+    />
+    <link rel="manifest" href="assets/site.webmanifest" />
+
+    <link rel="stylesheet" type="text/css" href="main.css" />
+
+    <title>GPT Baithani - Doorprize HUT 50th Baithani 2025</title>
+  </head>
+
+  <body>
+    <div id="tsparticles" style="display: none"></div>
+
+    <div id="content">
+      <div class="header">
+        <div class="logo-container">
+          <img src="./logo-hut-50th.png" alt="logo" />
+        </div>
+        <h2>Doorprize HUT 50th Baithani 2025</h2>
+      </div>
+      <div id="middle">
+        <div class="inputBox" id="bigMin">
+          <label for="bMinBox">Min</label>
+          <input type="number" name="min" id="bMinBox" min="1" value="1" />
+        </div>
+        <p id="number" class="noDisplay hidden"></p>
+        <div class="inputBox" id="bigMax">
+          <label for="bMaxBox">Max</label>
+          <input type="number" name="max" id="bMaxBox" min="1" value="1000" />
+        </div>
+      </div>
+      <div id="bottom">
+        <div class="inputBox small hidden" id="smallMin">
+          <label for="sMinBox">Min</label>
+          <input type="number" name="min" id="sMinBox" min="0" value="0" />
+        </div>
+        <button class="button" id="btnStart" onclick="generate()">START</button>
+        <button
+          class="button"
+          id="btnStop"
+          onclick="animateNumber.prototype.stop()"
+        >
+          STOP
+        </button>
+        <div class="inputBox small hidden" id="smallMax">
+          <label for="sMaxBox">Max</label>
+          <input type="number" name="max" id="sMaxBox" min="1" value="10" />
+        </div>
+      </div>
+    </div>
+
+    <footer class="copyright">
+      &copy; 2023 - <span id="currentYear"></span> Powered by
+      <strong>Multimedia Baithani</strong>.
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.12.0/tsparticles.bundle.min.js"></script>
+
+    <script src="main.js"></script>
+    <script src="confetti.js"></script>
+    <script>
+      document.getElementById('currentYear').innerHTML =
+        new Date().getFullYear();
+    </script>
+  </body>
+</html>
