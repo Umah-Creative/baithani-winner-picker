@@ -1,7 +1,10 @@
 import {
   customType,
+  index,
   integer,
+  jsonb,
   pgTable,
+  serial,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -27,3 +30,29 @@ export const eventSettings = pgTable("event_settings", {
     .notNull()
     .defaultNow(),
 });
+
+export const adminAuditLogs = pgTable(
+  "admin_audit_logs",
+  {
+    id: serial("id").primaryKey().notNull(),
+    action: text("action").notNull(),
+    outcome: text("outcome").notNull(),
+    actor: text("actor").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    acceptLanguage: text("accept_language"),
+    requestId: text("request_id"),
+    metadata: jsonb("metadata").notNull().default({}),
+  },
+  (table) => [
+    index("admin_audit_logs_occurred_at_idx").on(table.occurredAt),
+    index("admin_audit_logs_action_occurred_at_idx").on(
+      table.action,
+      table.occurredAt
+    ),
+    index("admin_audit_logs_request_id_idx").on(table.requestId),
+  ]
+);

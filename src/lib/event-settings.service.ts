@@ -26,6 +26,7 @@ export const getEventSettings = cache(
       minRange: row.minRange,
       maxRange: row.maxRange,
       excludedNumbers: row.excludedNumbers,
+      updatedAt: row.updatedAt.toISOString(),
     };
   }
 );

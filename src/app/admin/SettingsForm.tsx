@@ -79,7 +79,7 @@ export function SettingsForm(props: SettingsFormProps) {
           {settings?.hasLogo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src="/api/media/logo"
+              src={`/api/media/logo?v=${encodeURIComponent(settings.updatedAt)}`}
               alt={settings.logoAlt}
               className="mt-2 max-h-24 w-auto rounded-lg border border-border object-contain"
             />

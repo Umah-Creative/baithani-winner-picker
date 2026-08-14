@@ -7,6 +7,7 @@ export type EventSettingsView = {
   minRange: number;
   maxRange: number;
   excludedNumbers: number[];
+  updatedAt: string;
 };
 
 export type EventSettingsInput = {
@@ -36,4 +37,21 @@ export type EventSettingsSaveResult = {
   ok: boolean;
   error?: string;
   fieldErrors?: EventSettingsFieldError;
+  audit?: {
+    before: EventSettingsAuditSnapshot | null;
+    after: EventSettingsAuditSnapshot;
+    logoChange: "replace" | "remove" | "none";
+  };
+};
+
+export type EventSettingsAuditSnapshot = {
+  title: string;
+  description: string;
+  accentColor: string;
+  hasLogo: boolean;
+  logoMime: string | null;
+  logoAlt: string;
+  minRange: number;
+  maxRange: number;
+  excludedNumbers: number[];
 };

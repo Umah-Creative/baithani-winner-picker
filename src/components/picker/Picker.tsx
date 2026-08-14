@@ -292,7 +292,7 @@ export function Picker(props: PickerProps) {
             {settings.hasLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src="/api/media/logo"
+                src={`/api/media/logo?v=${encodeURIComponent(settings.updatedAt)}`}
                 alt={settings.logoAlt}
                 className="event-logo max-h-16 w-auto max-w-24 shrink-0 object-contain sm:max-h-24 sm:max-w-44 lg:max-h-28 lg:max-w-52"
               />

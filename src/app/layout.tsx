@@ -52,7 +52,8 @@ export async function generateMetadata(): Promise<Metadata> {
     const headerList = await headers();
     const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
     const protocol = headerList.get("x-forwarded-proto") ?? "https";
-    ogImage = host ? `${protocol}://${host}/api/media/logo` : "/api/media/logo";
+    const logoUrl = `/api/media/logo?v=${encodeURIComponent(settings.updatedAt)}`;
+    ogImage = host ? `${protocol}://${host}${logoUrl}` : logoUrl;
   }
 
   return {
