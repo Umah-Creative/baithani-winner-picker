@@ -1,16 +1,10 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useMemo, type CSSProperties } from "react";
 import { Play, RefreshCcw, Sparkles } from "lucide-react";
-import { domAnimation, LazyMotion, m, useReducedMotion } from "motion/react";
+import { domAnimation, LazyMotion, m } from "motion/react";
 
+import { AppFooter } from "@/components/layout/app-footer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +15,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AppFooter } from "@/components/layout/app-footer";
 import { Button } from "@/components/ui/button";
 import type { EventSettingsView } from "@/features/event-settings/event-settings.type";
 import { createBrandPalette } from "@/shared/brand/brand-color";
@@ -31,240 +24,21 @@ import { DrawnNumbers } from "./components/drawn-numbers";
 import { PickerToolbar } from "./components/picker-toolbar";
 import { RangeControls } from "./components/range-controls";
 import { WinnerDisplay } from "./components/winner-display";
-import { useCandidatePool } from "./hooks/use-candidate-pool";
-import { usePickerAudio } from "./hooks/use-picker-audio";
-import { usePickerSpin } from "./hooks/use-picker-spin";
+import { usePickerController } from "./hooks/use-picker-controller";
 
-const STORAGE_KEY = "baithani-winner-picker:drawn-numbers";
-const NEXT_DRAW_DELAY_MS = 1200;
-const REVEAL_DURATION_MS = 2300;
-const MIN_RANGE = 1;
-const MAX_RANGE = 10_000;
+import "./picker.css";
 
 type PickerProps = {
   settings: EventSettingsView;
 };
 
-function getRangeError(minValue: string, maxValue: string): string | null {
-  if (minValue.trim() === "" || maxValue.trim() === "") {
-    return "Enter both minimum and maximum numbers.";
-  }
-
-  const min = Number(minValue);
-  const max = Number(maxValue);
-
-  if (!Number.isInteger(min) || !Number.isInteger(max)) {
-    return "Range values must be whole numbers.";
-  }
-
-  if (min < MIN_RANGE || max > MAX_RANGE) {
-    return `Use numbers from ${MIN_RANGE.toLocaleString()} to ${MAX_RANGE.toLocaleString()}.`;
-  }
-
-  if (min >= max) {
-    return "Minimum must be lower than maximum.";
-  }
-
-  return null;
-}
-
 export function Picker(props: PickerProps) {
   const { settings } = props;
-  const [minValue, setMinValue] = useState(String(settings.minRange));
-  const [maxValue, setMaxValue] = useState(String(settings.maxRange));
-  const [nextDrawReady, setNextDrawReady] = useState(true);
-  const [newSessionOpen, setNewSessionOpen] = useState(false);
-  const nextDrawTimerRef = useRef<number | null>(null);
-  const reduceMotion = Boolean(useReducedMotion());
-  const rangeError = getRangeError(minValue, maxValue);
+  const picker = usePickerController(settings);
   const brandPalette = useMemo(
     () => createBrandPalette(settings.accentColor),
     [settings.accentColor]
   );
-
-  const min = rangeError ? 1 : Number(minValue);
-  const max = rangeError ? 0 : Number(maxValue);
-  const { candidates, drawnNumbers, drawnCount, draw, undoLast, reset } =
-    useCandidatePool({
-      min,
-      max,
-      excluded: settings.excludedNumbers,
-      storageKey: STORAGE_KEY,
-    });
-  const {
-    state,
-    start,
-    reveal,
-    reset: resetStage,
-  } = usePickerSpin({
-    pool: candidates,
-    reduceMotion,
-  });
-  const audio = usePickerAudio();
-
-  const active = state.status === "spinning" || state.status === "revealing";
-  const exhausted = rangeError === null && candidates.length === 0;
-  const canStartNewSession = exhausted && drawnCount > 0;
-
-  const clearNextDrawTimer = useCallback(() => {
-    if (nextDrawTimerRef.current !== null) {
-      window.clearTimeout(nextDrawTimerRef.current);
-      nextDrawTimerRef.current = null;
-    }
-  }, []);
-
-  const prepareNextDraw = useCallback(() => {
-    clearNextDrawTimer();
-    setNextDrawReady(false);
-    nextDrawTimerRef.current = window.setTimeout(
-      () => {
-        setNextDrawReady(true);
-        nextDrawTimerRef.current = null;
-      },
-      reduceMotion ? 0 : NEXT_DRAW_DELAY_MS
-    );
-  }, [clearNextDrawTimer, reduceMotion]);
-
-  const handleStart = useCallback(() => {
-    if (rangeError || exhausted) {
-      return;
-    }
-
-    clearNextDrawTimer();
-    setNextDrawReady(true);
-    if (start()) {
-      audio.startDraw();
-    }
-  }, [audio, clearNextDrawTimer, exhausted, rangeError, start]);
-
-  const handleReveal = useCallback(() => {
-    const revealing = reveal((winner) => {
-      draw(winner);
-      audio.playWinner();
-      prepareNextDraw();
-    });
-
-    if (revealing && !reduceMotion) {
-      audio.startReveal(REVEAL_DURATION_MS);
-    }
-  }, [audio, draw, prepareNextDraw, reduceMotion, reveal]);
-
-  const handlePrimaryAction = useCallback(() => {
-    if (canStartNewSession) {
-      setNewSessionOpen(true);
-      return;
-    }
-
-    if (state.status === "spinning") {
-      handleReveal();
-      return;
-    }
-
-    if (state.status === "idle" || state.status === "winner") {
-      handleStart();
-    }
-  }, [canStartNewSession, handleReveal, handleStart, state.status]);
-
-  const handleRequestNewSession = useCallback(() => {
-    if (!active && drawnCount > 0) {
-      setNewSessionOpen(true);
-    }
-  }, [active, drawnCount]);
-
-  const resetForRangeChange = useCallback(() => {
-    clearNextDrawTimer();
-    audio.stopAll();
-    resetStage();
-    setNextDrawReady(true);
-  }, [audio, clearNextDrawTimer, resetStage]);
-
-  const handleMinChange = useCallback(
-    (value: string) => {
-      resetForRangeChange();
-      setMinValue(value);
-    },
-    [resetForRangeChange]
-  );
-
-  const handleMaxChange = useCallback(
-    (value: string) => {
-      resetForRangeChange();
-      setMaxValue(value);
-    },
-    [resetForRangeChange]
-  );
-
-  const handleUndoLast = useCallback(() => {
-    clearNextDrawTimer();
-    audio.stopAll();
-    undoLast();
-    resetStage();
-    setNextDrawReady(true);
-  }, [audio, clearNextDrawTimer, resetStage, undoLast]);
-
-  const handleNewSession = useCallback(() => {
-    clearNextDrawTimer();
-    audio.stopAll();
-    reset();
-    resetStage();
-    setNextDrawReady(true);
-    setNewSessionOpen(false);
-  }, [audio, clearNextDrawTimer, reset, resetStage]);
-
-  useEffect(() => clearNextDrawTimer, [clearNextDrawTimer]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space" || event.repeat) {
-        return;
-      }
-
-      const target = event.target as HTMLElement | null;
-      if (
-        target?.tagName === "INPUT" ||
-        target?.tagName === "BUTTON" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      handlePrimaryAction();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handlePrimaryAction]);
-
-  const primaryLabel = (() => {
-    if (state.status === "spinning") {
-      return "Reveal winner";
-    }
-    if (state.status === "revealing") {
-      return "Revealing winner…";
-    }
-    if (canStartNewSession) {
-      return "Start new session";
-    }
-    if (state.status === "winner") {
-      return "Draw next winner";
-    }
-    if (exhausted) {
-      return "All numbers drawn";
-    }
-    return "Start draw";
-  })();
-  const primaryDisabled =
-    Boolean(rangeError) ||
-    state.status === "revealing" ||
-    (exhausted && !canStartNewSession) ||
-    (state.status === "winner" && !nextDrawReady && !canStartNewSession);
-  const stageState =
-    exhausted && state.status === "idle"
-      ? ({ status: "exhausted" } as const)
-      : state;
-  const winner = state.status === "winner" ? state.winner : null;
   const brandStyle = {
     "--brand": settings.accentColor,
     "--primary": settings.accentColor,
@@ -276,16 +50,16 @@ export function Picker(props: PickerProps) {
   return (
     <LazyMotion features={domAnimation}>
       <m.main
-        initial={reduceMotion ? false : { opacity: 0 }}
+        initial={picker.reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.35 }}
         className="picker-shell relative isolate flex min-h-svh flex-col overflow-x-hidden px-4 py-4 sm:px-7 sm:py-6 lg:px-10"
         style={brandStyle}
       >
         <ConfettiLayer
-          winner={winner}
+          winner={picker.winner}
           accent={settings.accentColor}
-          reduceMotion={reduceMotion}
+          reduceMotion={picker.reduceMotion}
         />
 
         <header className="relative z-50 flex items-start justify-between gap-4">
@@ -310,39 +84,39 @@ export function Picker(props: PickerProps) {
             </div>
           </div>
           <PickerToolbar
-            muted={audio.muted}
-            onToggleMuted={audio.toggleMuted}
+            muted={picker.audio.muted}
+            onToggleMuted={picker.audio.toggleMuted}
           />
         </header>
 
         <section className="relative z-10 mx-auto flex w-full max-w-[110rem] flex-1 flex-col items-center justify-center py-3 sm:py-4">
           <RangeControls
-            min={minValue}
-            max={maxValue}
-            disabled={active}
-            error={rangeError}
-            onMinChange={handleMinChange}
-            onMaxChange={handleMaxChange}
+            min={picker.minValue}
+            max={picker.maxValue}
+            disabled={picker.active}
+            error={picker.rangeError}
+            onMinChange={picker.handleMinChange}
+            onMaxChange={picker.handleMaxChange}
           />
 
           <WinnerDisplay
-            state={stageState}
-            reduceMotion={reduceMotion}
-            canStartNewSession={canStartNewSession}
+            state={picker.stageState}
+            reduceMotion={picker.reduceMotion}
+            canStartNewSession={picker.canStartNewSession}
           />
 
           <div className="flex w-full flex-col items-center gap-3 px-1">
             <Button
-              onClick={handlePrimaryAction}
-              disabled={primaryDisabled}
+              onClick={picker.handlePrimaryAction}
+              disabled={picker.primaryDisabled}
               variant="stage"
               size="stage"
               className="w-full sm:w-auto"
             >
-              {canStartNewSession ? (
+              {picker.canStartNewSession ? (
                 <RefreshCcw data-icon="inline-start" className="size-5" />
-              ) : state.status === "spinning" ||
-                state.status === "revealing" ? (
+              ) : picker.state.status === "spinning" ||
+                picker.state.status === "revealing" ? (
                 <Sparkles data-icon="inline-start" className="size-5" />
               ) : (
                 <Play
@@ -350,26 +124,29 @@ export function Picker(props: PickerProps) {
                   className="size-5 fill-current"
                 />
               )}
-              {primaryLabel}
+              {picker.primaryLabel}
             </Button>
             <p className="hidden text-xs text-muted-foreground sm:block">
               Press <kbd>Space</kbd> to{" "}
-              {state.status === "spinning" ? "reveal" : "continue"}
+              {picker.state.status === "spinning" ? "reveal" : "continue"}
             </p>
           </div>
         </section>
 
         <div className="relative z-10 mx-auto w-full max-w-4xl">
           <DrawnNumbers
-            drawnNumbers={drawnNumbers}
-            disabled={active}
-            reduceMotion={reduceMotion}
-            onUndoLast={handleUndoLast}
-            onRequestNewSession={handleRequestNewSession}
+            drawnNumbers={picker.drawnNumbers}
+            disabled={picker.active}
+            reduceMotion={picker.reduceMotion}
+            onUndoLast={picker.handleUndoLast}
+            onRequestNewSession={picker.handleRequestNewSession}
           />
         </div>
 
-        <AlertDialog open={newSessionOpen} onOpenChange={setNewSessionOpen}>
+        <AlertDialog
+          open={picker.newSessionOpen}
+          onOpenChange={picker.setNewSessionOpen}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Start a new draw session?</AlertDialogTitle>
@@ -383,7 +160,7 @@ export function Picker(props: PickerProps) {
               <AlertDialogCancel>Keep current session</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
-                onClick={handleNewSession}
+                onClick={picker.handleNewSession}
               >
                 Start new session
               </AlertDialogAction>
@@ -392,8 +169,8 @@ export function Picker(props: PickerProps) {
         </AlertDialog>
 
         <AppFooter />
-        {drawnCount > 0 ? (
-          <span className="sr-only">{drawnCount} numbers drawn.</span>
+        {picker.drawnCount > 0 ? (
+          <span className="sr-only">{picker.drawnCount} numbers drawn.</span>
         ) : null}
       </m.main>
     </LazyMotion>

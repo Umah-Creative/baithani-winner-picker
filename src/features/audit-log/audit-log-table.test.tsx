@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { AdminAuditLogPage } from "./server/audit-log.query";
 
 import { LogsTable } from "./audit-log-table";
-import { serializeLogFilterDate } from "./components/audit-log-filters";
+import { serializeLogFilterDate } from "./audit-log-date";
 
 afterEach(cleanup);
 

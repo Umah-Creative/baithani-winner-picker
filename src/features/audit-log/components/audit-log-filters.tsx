@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { format, isValid, parse } from "date-fns";
 import { CalendarIcon, SlidersHorizontalIcon } from "lucide-react";
 import Link from "next/link";
 import type { DateRange } from "react-day-picker";
@@ -32,34 +31,23 @@ import { ADMIN_AUDIT_ACTIONS } from "@/features/audit-log/audit-log.shared";
 import { cn } from "@/lib/utils";
 
 import { formatAuditAction, formatAuditOutcome } from "../audit-log-labels";
+import {
+  formatLogDateRange,
+  parseLogFilterDate,
+  serializeLogFilterDate,
+} from "../audit-log-date";
 
 type LogFiltersProps = {
   filters: AdminLogFilters;
 };
-
-function parseFilterDate(value: string | undefined): Date | undefined {
-  if (!value) return undefined;
-  const date = parse(value, "yyyy-MM-dd", new Date());
-  return isValid(date) ? date : undefined;
-}
-
-function formatDateRange(range: DateRange | undefined): string {
-  if (!range?.from) return "Choose date range";
-  if (!range.to) return format(range.from, "MMM d, yyyy");
-  return `${format(range.from, "MMM d, yyyy")} – ${format(range.to, "MMM d, yyyy")}`;
-}
-
-export function serializeLogFilterDate(date: Date | undefined): string {
-  return date ? format(date, "yyyy-MM-dd") : "";
-}
 
 export function LogFilters(props: LogFiltersProps) {
   const { filters } = props;
   const [action, setAction] = useState(filters.action ?? "");
   const [outcome, setOutcome] = useState(filters.outcome ?? "");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
-    const from = parseFilterDate(filters.from);
-    const to = parseFilterDate(filters.to);
+    const from = parseLogFilterDate(filters.from);
+    const to = parseLogFilterDate(filters.to);
     return from || to ? { from, to } : undefined;
   });
   const [ip, setIp] = useState(filters.ip ?? "");
@@ -90,7 +78,7 @@ export function LogFilters(props: LogFiltersProps) {
   const activeFilters = [
     action ? `Action: ${formatAuditAction(action)}` : undefined,
     outcome ? `Outcome: ${formatAuditOutcome(outcome)}` : undefined,
-    dateRange?.from ? `Dates: ${formatDateRange(dateRange)}` : undefined,
+    dateRange?.from ? `Dates: ${formatLogDateRange(dateRange)}` : undefined,
     ip ? `IP: ${ip}` : undefined,
     requestId ? `Request: ${requestId}` : undefined,
   ].filter((value): value is string => Boolean(value));
@@ -171,7 +159,7 @@ export function LogFilters(props: LogFiltersProps) {
               }
             >
               <CalendarIcon data-icon="inline-start" aria-hidden="true" />
-              {formatDateRange(dateRange)}
+              {formatLogDateRange(dateRange)}
             </PopoverTrigger>
             <PopoverContent align="start" className="w-auto p-0">
               <Calendar

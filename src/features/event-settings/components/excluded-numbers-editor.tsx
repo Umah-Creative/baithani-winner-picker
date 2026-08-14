@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { PlusIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,10 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { parseExcludedNumbers } from "../event-settings.validation";
+import {
+  sanitizeNumberListInput,
+  useExcludedNumbersEditor,
+} from "../hooks/use-excluded-numbers-editor";
 
 type ExcludedNumbersEditorProps = {
   minRange: number;
@@ -24,10 +26,6 @@ type ExcludedNumbersEditorProps = {
   onNumbersChange: (numbers: number[]) => void;
 };
 
-function sanitizeNumberListInput(value: string): string {
-  return value.replace(/[^\d,\s]/g, "");
-}
-
 export function ExcludedNumbersEditor(props: ExcludedNumbersEditorProps) {
   const {
     minRange,
@@ -38,84 +36,40 @@ export function ExcludedNumbersEditor(props: ExcludedNumbersEditorProps) {
     numbers,
     onNumbersChange,
   } = props;
-  const [draft, setDraft] = useState("");
-  const [bulkDraft, setBulkDraft] = useState("");
-  const [error, setError] = useState<string>();
-  const rangeIsValid =
-    Number.isSafeInteger(minRange) &&
-    Number.isSafeInteger(maxRange) &&
-    minRange >= 1 &&
-    maxRange <= 10_000 &&
-    minRange < maxRange;
-  const inRangeNumbers = rangeIsValid
-    ? numbers.filter((number) => number >= minRange && number <= maxRange)
-    : [];
-  const rangeError = rangeIsValid
-    ? numbers
-        .filter((number) => number < minRange || number > maxRange)
-        .map(
-          (number) =>
-            `Excluded number ${number} must be between ${minRange} and ${maxRange}.`
-        )[0]
-    : undefined;
-  const eligibleCount = rangeIsValid
-    ? Math.max(0, maxRange - minRange + 1 - inRangeNumbers.length)
-    : 0;
-  const message = error ?? rangeError ?? serverError;
-  const submissionValue = useMemo(
-    () =>
-      [numbers.join(","), draft.trim(), bulkDraft.trim().replace(/\r?\n/g, ",")]
-        .filter(Boolean)
-        .join(","),
-    [bulkDraft, draft, numbers]
-  );
-
-  function addNumbers(raw: string, clear: () => void) {
-    if (raw.trim() === "") return;
-    if (!rangeIsValid) {
-      setError("Set a valid range before excluding numbers.");
-      return;
-    }
-
-    const result = parseExcludedNumbers(
-      sanitizeNumberListInput(raw),
-      minRange,
-      maxRange
-    );
-    if (!result.ok) {
-      setError(result.error);
-      return;
-    }
-
-    onNumbersChange(
-      [...new Set([...numbers, ...result.values])].sort((a, b) => a - b)
-    );
-    clear();
-    setError(undefined);
-    onDirty();
-  }
+  const editor = useExcludedNumbersEditor({
+    minRange,
+    maxRange,
+    serverError,
+    numbers,
+    onNumbersChange,
+    onDirty,
+  });
 
   return (
-    <Field data-invalid={Boolean(message)}>
+    <Field data-invalid={Boolean(editor.message)}>
       <FieldLabel htmlFor="excludedNumber">Excluded numbers</FieldLabel>
       <FieldDescription id="excluded-numbers-description">
         Add ticket numbers that must never be selected.
       </FieldDescription>
-      <input type="hidden" name="excludedNumbers" value={submissionValue} />
+      <input
+        type="hidden"
+        name="excludedNumbers"
+        value={editor.submissionValue}
+      />
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
         <Input
           id="excludedNumber"
           type="number"
           inputMode="numeric"
-          min={rangeIsValid ? minRange : 1}
-          max={rangeIsValid ? maxRange : 10_000}
+          min={editor.rangeIsValid ? minRange : 1}
+          max={editor.rangeIsValid ? maxRange : 10_000}
           step={1}
-          value={draft}
+          value={editor.draft}
           disabled={pending}
           placeholder="e.g. 42"
           onChange={(event) => {
-            setDraft(event.target.value.replace(/\D/g, ""));
-            setError(undefined);
+            editor.setDraft(event.target.value.replace(/\D/g, ""));
+            editor.clearError();
           }}
           onKeyDown={(event) => {
             if (["e", "E", "+", "-", "."].includes(event.key)) {
@@ -124,25 +78,25 @@ export function ExcludedNumbersEditor(props: ExcludedNumbersEditorProps) {
             }
             if (event.key === "Enter") {
               event.preventDefault();
-              addNumbers(draft, () => setDraft(""));
+              editor.addDraft();
             }
           }}
           onPaste={(event) => {
             const pasted = event.clipboardData.getData("text");
             if (/[\n,]/.test(pasted)) {
               event.preventDefault();
-              addNumbers(sanitizeNumberListInput(pasted), () => setDraft(""));
+              editor.addPasted(pasted);
             }
           }}
           aria-describedby="excluded-numbers-description excluded-numbers-error"
-          aria-invalid={Boolean(message)}
+          aria-invalid={Boolean(editor.message)}
           className="min-h-11"
         />
         <Button
           type="button"
           variant="outline"
-          disabled={pending || draft.trim() === ""}
-          onClick={() => addNumbers(draft, () => setDraft(""))}
+          disabled={pending || editor.draft.trim() === ""}
+          onClick={editor.addDraft}
           className="min-h-11"
         >
           <PlusIcon data-icon="inline-start" aria-hidden="true" />
@@ -156,11 +110,11 @@ export function ExcludedNumbersEditor(props: ExcludedNumbersEditorProps) {
         </summary>
         <div className="mt-3 flex flex-col gap-3">
           <Textarea
-            value={bulkDraft}
+            value={editor.bulkDraft}
             disabled={pending}
             onChange={(event) => {
-              setBulkDraft(sanitizeNumberListInput(event.target.value));
-              setError(undefined);
+              editor.setBulkDraft(sanitizeNumberListInput(event.target.value));
+              editor.clearError();
             }}
             placeholder={"13, 42, 99\n105"}
             aria-label="Numbers to paste"
@@ -173,8 +127,8 @@ export function ExcludedNumbersEditor(props: ExcludedNumbersEditorProps) {
           <Button
             type="button"
             variant="outline"
-            disabled={pending || bulkDraft.trim() === ""}
-            onClick={() => addNumbers(bulkDraft, () => setBulkDraft(""))}
+            disabled={pending || editor.bulkDraft.trim() === ""}
+            onClick={editor.addBulkDraft}
             className="self-start"
           >
             Add pasted numbers
@@ -198,9 +152,7 @@ export function ExcludedNumbersEditor(props: ExcludedNumbersEditorProps) {
                 aria-label={`Remove ${number}`}
                 disabled={pending}
                 onClick={() => {
-                  onNumbersChange(numbers.filter((value) => value !== number));
-                  setError(undefined);
-                  onDirty();
+                  editor.removeNumber(number);
                 }}
                 className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
               >
@@ -211,10 +163,10 @@ export function ExcludedNumbersEditor(props: ExcludedNumbersEditorProps) {
         </div>
       ) : null}
       <p className="text-sm font-medium text-foreground">
-        {eligibleCount} eligible numbers
+        {editor.eligibleCount} eligible numbers
       </p>
-      {message ? (
-        <FieldError id="excluded-numbers-error">{message}</FieldError>
+      {editor.message ? (
+        <FieldError id="excluded-numbers-error">{editor.message}</FieldError>
       ) : null}
     </Field>
   );

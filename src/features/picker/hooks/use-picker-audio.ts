@@ -2,21 +2,33 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AudioEngine } from "../audio/audio-engine";
+import { PickerSoundEngine } from "../audio/picker-sound-engine";
 
-export function usePickerAudio() {
+export type PickerAudioEngine = Pick<
+  PickerSoundEngine,
+  "startDraw" | "startReveal" | "playWinner" | "stopAll" | "dispose"
+>;
+
+export type PickerAudioEngineFactory = () => PickerAudioEngine;
+
+const createPickerAudioEngine: PickerAudioEngineFactory = () =>
+  new PickerSoundEngine();
+
+export function usePickerAudio(
+  createEngine: PickerAudioEngineFactory = createPickerAudioEngine
+) {
   const [muted, setMuted] = useState(false);
-  const engineRef = useRef<AudioEngine | null>(null);
+  const engineRef = useRef<PickerAudioEngine | null>(null);
 
   useEffect(() => {
-    const engine = new AudioEngine();
+    const engine = createEngine();
     engineRef.current = engine;
 
     return () => {
       engine.dispose();
       engineRef.current = null;
     };
-  }, []);
+  }, [createEngine]);
 
   const toggleMuted = useCallback(() => {
     setMuted((currentMuted) => {

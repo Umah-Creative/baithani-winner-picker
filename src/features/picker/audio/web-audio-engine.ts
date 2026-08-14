@@ -1,14 +1,14 @@
-const MASTER_LEVEL = 1.0;
+const MASTER_LEVEL = 1;
 const MAKEUP_GAIN = 1.6;
 const MIN_GAIN = 0.001;
 const SILENCE_GAIN = 0.0001;
 
-type PhaseStart = {
+export type AudioPhase = {
   context: AudioContext;
   startAt: number;
 };
 
-type ToneOptions = {
+export type ToneOptions = {
   frequency: number;
   startAt: number;
   duration: number;
@@ -17,7 +17,7 @@ type ToneOptions = {
   endFrequency?: number;
 };
 
-type NoiseOptions = {
+export type NoiseOptions = {
   startAt: number;
   duration: number;
   gain: number;
@@ -27,7 +27,7 @@ type NoiseOptions = {
   q?: number;
 };
 
-export class AudioEngine {
+export class WebAudioEngine {
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private compressor: DynamicsCompressorNode | null = null;
@@ -36,10 +36,12 @@ export class AudioEngine {
   private sources = new Set<AudioScheduledSourceNode>();
   private timers = new Set<number>();
 
+  protected get activeContext(): AudioContext | null {
+    return this.context;
+  }
+
   private ensureContext(): AudioContext | null {
-    if (typeof window === "undefined") {
-      return null;
-    }
+    if (typeof window === "undefined") return null;
 
     if (!this.context) {
       const context = new AudioContext();
@@ -54,7 +56,6 @@ export class AudioEngine {
       compressor.attack.value = 0.003;
       compressor.release.value = 0.22;
       makeupGain.gain.value = MAKEUP_GAIN;
-
       masterGain.connect(compressor);
       compressor.connect(makeupGain);
       makeupGain.connect(context.destination);
@@ -66,10 +67,7 @@ export class AudioEngine {
       this.noiseBuffer = this.createNoiseBuffer(context);
     }
 
-    if (this.context.state === "suspended") {
-      void this.context.resume();
-    }
-
+    if (this.context.state === "suspended") void this.context.resume();
     return this.context;
   }
 
@@ -80,11 +78,9 @@ export class AudioEngine {
       context.sampleRate
     );
     const samples = buffer.getChannelData(0);
-
     for (let index = 0; index < samples.length; index += 1) {
       samples[index] = Math.random() * 2 - 1;
     }
-
     return buffer;
   }
 
@@ -95,29 +91,23 @@ export class AudioEngine {
     });
   }
 
-  private preparePhase(muted: boolean): PhaseStart | null {
+  protected preparePhase(muted: boolean): AudioPhase | null {
     this.stopAll();
-
-    if (muted) {
-      return null;
-    }
+    if (muted) return null;
 
     const context = this.ensureContext();
     const masterGain = this.masterGain;
-    if (!context || !masterGain) {
-      return null;
-    }
+    if (!context || !masterGain) return null;
 
     const now = context.currentTime;
     const startAt = now + 0.035;
     masterGain.gain.cancelScheduledValues(now);
     masterGain.gain.setValueAtTime(0, now);
     masterGain.gain.linearRampToValueAtTime(MASTER_LEVEL, startAt);
-
     return { context, startAt };
   }
 
-  private playTone(context: AudioContext, options: ToneOptions) {
+  protected playTone(context: AudioContext, options: ToneOptions) {
     const {
       frequency,
       startAt,
@@ -127,9 +117,7 @@ export class AudioEngine {
       endFrequency,
     } = options;
     const masterGain = this.masterGain;
-    if (!masterGain) {
-      return;
-    }
+    if (!masterGain) return;
 
     const oscillator = context.createOscillator();
     const gain = context.createGain();
@@ -142,11 +130,9 @@ export class AudioEngine {
     if (endFrequency) {
       oscillator.frequency.exponentialRampToValueAtTime(endFrequency, stopAt);
     }
-
     gain.gain.setValueAtTime(fadeFloor, startAt);
     gain.gain.exponentialRampToValueAtTime(peakGain, attackEnd);
     gain.gain.exponentialRampToValueAtTime(fadeFloor, stopAt);
-
     oscillator.connect(gain);
     gain.connect(masterGain);
     this.track(oscillator);
@@ -154,7 +140,7 @@ export class AudioEngine {
     oscillator.stop(stopAt + 0.02);
   }
 
-  private playNoise(context: AudioContext, options: NoiseOptions) {
+  protected playNoise(context: AudioContext, options: NoiseOptions) {
     const {
       startAt,
       duration,
@@ -165,9 +151,7 @@ export class AudioEngine {
       q = 1,
     } = options;
     const masterGain = this.masterGain;
-    if (!masterGain || !this.noiseBuffer) {
-      return;
-    }
+    if (!masterGain || !this.noiseBuffer) return;
 
     const source = context.createBufferSource();
     const filter = context.createBiquadFilter();
@@ -184,11 +168,9 @@ export class AudioEngine {
     if (endFrequency) {
       filter.frequency.exponentialRampToValueAtTime(endFrequency, stopAt);
     }
-
     gain.gain.setValueAtTime(fadeFloor, startAt);
     gain.gain.exponentialRampToValueAtTime(peakGain, attackEnd);
     gain.gain.exponentialRampToValueAtTime(fadeFloor, stopAt);
-
     source.connect(filter);
     filter.connect(gain);
     gain.connect(masterGain);
@@ -197,53 +179,7 @@ export class AudioEngine {
     source.stop(stopAt + 0.02);
   }
 
-  private playWoodblock(context: AudioContext, startAt: number) {
-    this.playNoise(context, {
-      startAt,
-      duration: 0.025,
-      gain: 0.035,
-      filterType: "bandpass",
-      frequency: 1800,
-      q: 4,
-    });
-    this.playTone(context, {
-      startAt,
-      duration: 0.045,
-      gain: 0.045,
-      frequency: 620,
-      endFrequency: 480,
-      type: "triangle",
-    });
-  }
-
-  private playSnare(context: AudioContext, startAt: number, intensity: number) {
-    this.playNoise(context, {
-      startAt,
-      duration: 0.07,
-      gain: 0.045 + intensity * 0.032,
-      filterType: "bandpass",
-      frequency: 1700 + intensity * 900,
-      q: 0.8,
-    });
-    this.playTone(context, {
-      startAt,
-      duration: 0.115,
-      gain: 0.055 + intensity * 0.035,
-      frequency: 90,
-      endFrequency: 66,
-      type: "sine",
-    });
-    this.playTone(context, {
-      startAt,
-      duration: 0.045,
-      gain: 0.03 + intensity * 0.025,
-      frequency: 220 + intensity * 120,
-      endFrequency: 150,
-      type: "triangle",
-    });
-  }
-
-  private scheduleTimer(callback: () => void, delay: number) {
+  protected scheduleTimer(callback: () => void, delay: number) {
     const timer = window.setTimeout(() => {
       this.timers.delete(timer);
       callback();
@@ -251,120 +187,8 @@ export class AudioEngine {
     this.timers.add(timer);
   }
 
-  startDraw(muted: boolean) {
-    const phase = this.preparePhase(muted);
-    if (!phase) {
-      return;
-    }
-
-    const { context, startAt } = phase;
-    this.playTone(context, {
-      startAt,
-      duration: 0.2,
-      gain: 0.09,
-      frequency: 392,
-      type: "triangle",
-    });
-    this.playTone(context, {
-      startAt: startAt + 0.085,
-      duration: 0.24,
-      gain: 0.1,
-      frequency: 523.25,
-      type: "triangle",
-    });
-
-    this.scheduleTimer(() => {
-      if (!this.context) {
-        return;
-      }
-
-      this.playWoodblock(this.context, this.context.currentTime);
-      const interval = window.setInterval(() => {
-        if (this.context) {
-          this.playWoodblock(this.context, this.context.currentTime);
-        }
-      }, 110);
-      this.timers.add(interval);
-    }, 250);
-  }
-
-  startReveal(muted: boolean, durationMs: number) {
-    const phase = this.preparePhase(muted);
-    if (!phase) {
-      return;
-    }
-
-    const { context, startAt } = phase;
-    const duration = durationMs / 1000;
-    let elapsed = 0;
-
-    while (elapsed < duration) {
-      const progress = elapsed / duration;
-      this.playSnare(context, startAt + elapsed, progress);
-      elapsed += 0.13 - progress * 0.075;
-    }
-
-    this.playNoise(context, {
-      startAt,
-      duration,
-      gain: 0.032,
-      filterType: "lowpass",
-      frequency: 520,
-      endFrequency: 4200,
-      q: 0.7,
-    });
-    this.playTone(context, {
-      startAt,
-      duration,
-      gain: 0.03,
-      frequency: 174.61,
-      endFrequency: 261.63,
-      type: "sine",
-    });
-  }
-
-  playWinner(muted: boolean) {
-    const phase = this.preparePhase(muted);
-    if (!phase) {
-      return;
-    }
-
-    const { context, startAt } = phase;
-    const impactAt = startAt + 0.08;
-    this.playTone(context, {
-      startAt: impactAt,
-      duration: 0.5,
-      gain: 0.2,
-      frequency: 86,
-      endFrequency: 48,
-      type: "sine",
-    });
-    this.playNoise(context, {
-      startAt: impactAt,
-      duration: 0.9,
-      gain: 0.055,
-      filterType: "highpass",
-      frequency: 2800,
-      endFrequency: 7200,
-      q: 0.6,
-    });
-
-    const fanfare = [
-      { frequency: 523.25, delay: 0.06 },
-      { frequency: 659.25, delay: 0.16 },
-      { frequency: 783.99, delay: 0.26 },
-      { frequency: 1046.5, delay: 0.4 },
-    ];
-
-    fanfare.forEach(({ frequency, delay }, index) => {
-      this.playTone(context, {
-        startAt: impactAt + delay,
-        duration: index === fanfare.length - 1 ? 0.82 : 0.58,
-        gain: index === fanfare.length - 1 ? 0.13 : 0.1,
-        frequency,
-        type: "triangle",
-      });
-    });
+  protected trackTimer(timer: number) {
+    this.timers.add(timer);
   }
 
   stopAll() {
@@ -376,9 +200,7 @@ export class AudioEngine {
 
     const context = this.context;
     const masterGain = this.masterGain;
-    if (!context || !masterGain) {
-      return;
-    }
+    if (!context || !masterGain) return;
 
     const now = context.currentTime;
     masterGain.gain.cancelScheduledValues(now);
