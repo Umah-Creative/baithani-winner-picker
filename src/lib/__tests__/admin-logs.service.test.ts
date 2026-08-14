@@ -27,6 +27,8 @@ const mocks = vi.hoisted(() => {
       actor: "admin",
       occurredAt: new Date("2026-08-14T12:00:00.000Z"),
       ipAddress: "203.0.113.8",
+      userAgent: "Mozilla/5.0",
+      acceptLanguage: "en-US",
       requestId: "req-123",
       metadata: { before: { title: "Old" }, after: { title: "New" } },
     },
@@ -92,6 +94,8 @@ describe("getAdminAuditLogPage", () => {
         actor: "admin",
         occurredAt: new Date("2026-08-14T12:00:00.000Z"),
         ipAddress: "203.0.113.8",
+        userAgent: "Mozilla/5.0",
+        acceptLanguage: "en-US",
         requestId: "req-123",
         metadata: {
           before: { title: "Old" },
@@ -148,6 +152,10 @@ describe("getAdminAuditLogPage", () => {
     expect(page.rows[0]?.metadata).toEqual({
       before: { title: "Old" },
       after: { title: "New" },
+    });
+    expect(page.rows[0]).toMatchObject({
+      userAgent: "Mozilla/5.0",
+      acceptLanguage: "en-US",
     });
   });
 

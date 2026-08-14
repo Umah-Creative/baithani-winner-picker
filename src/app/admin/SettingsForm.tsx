@@ -141,7 +141,7 @@ function LogoDropzone({
     setClientError(message);
   }
 
-  function selectFile(file: File | undefined) {
+  function selectFile(file: File | undefined, fromDrop = false) {
     if (!file) return;
     if (!ACCEPTED_LOGO_TYPES.has(file.type)) {
       rejectFile("Logo must be PNG, JPEG, WebP, or GIF.");
@@ -150,6 +150,11 @@ function LogoDropzone({
     if (file.size > MAX_LOGO_BYTES) {
       rejectFile("Logo must be smaller than 5 MB.");
       return;
+    }
+    if (fromDrop && fileInputRef.current) {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      fileInputRef.current.files = dataTransfer.files;
     }
     clearPreview();
     const url =
@@ -171,7 +176,7 @@ function LogoDropzone({
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
-    selectFile(event.dataTransfer.files[0]);
+    selectFile(event.dataTransfer.files[0], true);
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {

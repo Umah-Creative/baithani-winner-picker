@@ -22,6 +22,8 @@ export type AdminAuditLogRow = {
   actor: string;
   occurredAt: string;
   ipAddress: string | null;
+  userAgent: string | null;
+  acceptLanguage: string | null;
   requestId: string | null;
   metadata: AdminAuditMetadata;
 };
@@ -89,6 +91,8 @@ export async function getAdminAuditLogPage(
       actor: row.actor,
       occurredAt: row.occurredAt.toISOString(),
       ipAddress: row.ipAddress,
+      userAgent: row.userAgent,
+      acceptLanguage: row.acceptLanguage,
       requestId: row.requestId,
       metadata: sanitizeAuditMetadata(row.metadata as AdminAuditMetadata),
     })),

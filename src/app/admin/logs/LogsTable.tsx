@@ -35,7 +35,15 @@ function pageHref(page: AdminAuditLogPage, nextPage: number): string {
   return query ? `/admin/logs?${query}` : "/admin/logs";
 }
 
-function AuditDetails({ metadata }: { metadata: Record<string, unknown> }) {
+function AuditDetails({
+  metadata,
+  userAgent,
+  acceptLanguage,
+}: {
+  metadata: Record<string, unknown>;
+  userAgent: string | null;
+  acceptLanguage: string | null;
+}) {
   const changes = formatAuditSettingsDiff(metadata);
 
   return (
@@ -43,6 +51,24 @@ function AuditDetails({ metadata }: { metadata: Record<string, unknown> }) {
       <summary className="cursor-pointer text-sm font-medium text-foreground">
         Sanitized change details
       </summary>
+      {userAgent || acceptLanguage ? (
+        <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+          {userAgent ? (
+            <div>
+              <dt className="font-medium text-foreground">User agent</dt>
+              <dd className="break-words text-muted-foreground">{userAgent}</dd>
+            </div>
+          ) : null}
+          {acceptLanguage ? (
+            <div>
+              <dt className="font-medium text-foreground">Locale</dt>
+              <dd className="break-words text-muted-foreground">
+                {acceptLanguage}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
       {changes.length ? (
         <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
           {changes.map((change) => (
@@ -170,7 +196,11 @@ export function LogsTable({ page }: { page: AdminAuditLogPage }) {
                     </div>
                   </dl>
                 </div>
-                <AuditDetails metadata={row.metadata} />
+                <AuditDetails
+                  metadata={row.metadata}
+                  userAgent={row.userAgent}
+                  acceptLanguage={row.acceptLanguage}
+                />
               </li>
             ))}
           </ul>

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
@@ -9,6 +10,12 @@ import {
   isAdminAuthenticated,
 } from "@/lib/auth.service";
 import { writeAdminAuditLog } from "@/lib/admin-audit";
+import { getAdminAuditRequestMetadata } from "@/lib/admin-audit.shared";
+import {
+  clearLoginFailures,
+  consumeLoginFailure,
+  getLoginRateLimitKey,
+} from "@/lib/admin-login-rate-limit";
 import { saveEventSettings } from "@/lib/event-settings.mutate";
 import { parseExcludedNumbers } from "@/lib/event-settings.validation";
 import type {
@@ -28,14 +35,27 @@ async function recordAdminAudit(
   await writeAdminAuditLog(input);
 }
 
+async function getLoginRateLimitKeyForRequest(): Promise<string> {
+  try {
+    const requestHeaders = await headers();
+    return getLoginRateLimitKey(getAdminAuditRequestMetadata(requestHeaders));
+  } catch {
+    return "anonymous";
+  }
+}
+
 export async function loginAdmin(
   _state: ActionState,
   formData: FormData
 ): Promise<ActionState> {
   const password = String(formData.get("password") ?? "");
   const expected = process.env.ADMIN_PASSWORD;
+  const rateLimitKey = await getLoginRateLimitKeyForRequest();
 
   if (!expected || password !== expected) {
+    if (consumeLoginFailure(rateLimitKey)) {
+      return { error: "Invalid password." };
+    }
     await recordAdminAudit({
       action: "auth.login",
       outcome: "failure",
@@ -45,6 +65,7 @@ export async function loginAdmin(
     return { error: "Invalid password." };
   }
 
+  clearLoginFailures(rateLimitKey);
   await createAdminSession();
   await recordAdminAudit({
     action: "auth.login",

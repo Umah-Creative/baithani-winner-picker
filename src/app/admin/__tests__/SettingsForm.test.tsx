@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -52,6 +58,34 @@ describe("SettingsForm logo controls", () => {
     expect(
       screen.getByText("Logo must be PNG, JPEG, WebP, or GIF.")
     ).toBeTruthy();
+  });
+
+  it("assigns a dropped logo to the native form input", () => {
+    class DataTransferMock {
+      files: File[] = [];
+      items = {
+        add: (file: File) => this.files.push(file),
+      };
+    }
+    vi.stubGlobal("DataTransfer", DataTransferMock);
+    render(<SettingsForm settings={settings} />);
+
+    const logo = new File(["logo"], "dropped.png", { type: "image/png" });
+    const input = screen.getByLabelText<HTMLInputElement>("Logo");
+    let assignedFiles: File[] = [];
+    Object.defineProperty(input, "files", {
+      configurable: true,
+      get: () => assignedFiles,
+      set: (files: File[]) => {
+        assignedFiles = files;
+      },
+    });
+    fireEvent.drop(screen.getByRole("button", { name: "Upload logo" }), {
+      dataTransfer: { files: [logo] },
+    });
+
+    expect(input.files?.[0]).toBe(logo);
+    vi.unstubAllGlobals();
   });
 
   it("warns when editable logo alt text is left blank", async () => {
