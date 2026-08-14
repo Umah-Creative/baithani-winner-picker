@@ -2,6 +2,16 @@
   "name": "baithani-winner-picker",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "Umah Creative",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Umah-Creative/baithani-winner-picker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Umah-Creative/baithani-winner-picker/issues"
+  },
+  "homepage": "https://github.com/Umah-Creative/baithani-winner-picker#readme",
   "packageManager": "pnpm@11.21.0",
   "engines": {
     "node": "22"
