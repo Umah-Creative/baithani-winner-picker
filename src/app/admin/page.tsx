@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { AppFooter } from "@/components/layout/AppFooter";
-import { isAdminAuthenticated } from "@/lib/auth.service";
-import { getEventSettings } from "@/lib/event-settings.service";
-import { resolveSiteUrl } from "@/lib/site-url";
-
-import { AdminHeader } from "./AdminHeader";
-import { SettingsForm } from "./SettingsForm";
+import { AdminHeader } from "@/components/layout/admin-header";
+import { AppFooter } from "@/components/layout/app-footer";
+import { isAdminAuthenticated } from "@/features/admin-auth/server/admin-session.service";
+import { SettingsForm } from "@/features/event-settings/event-settings-form";
+import { getEventSettings } from "@/features/event-settings/server/event-settings.query";
+import { resolveSiteUrl } from "@/shared/site-url/resolve-site-url.server";
 
 export const metadata: Metadata = {
   title: "Admin",

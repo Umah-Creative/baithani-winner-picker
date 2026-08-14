@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 
-import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { buildEventMetadata } from "@/lib/event-metadata";
-import { getEventSettings } from "@/lib/event-settings.service";
-import { resolveSiteUrl } from "@/lib/site-url";
+import { buildEventMetadata } from "@/features/event-sharing/event-metadata";
+import { getEventSettings } from "@/features/event-settings/server/event-settings.query";
+import { resolveSiteUrl } from "@/shared/site-url/resolve-site-url.server";
 import { cn } from "@/lib/utils";
 
 import "./globals.css";

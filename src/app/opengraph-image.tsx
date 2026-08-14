@@ -1,11 +1,11 @@
 import { ImageResponse } from "next/og";
 
-import { createBrandPalette } from "@/lib/brand-color";
+import { createBrandPalette } from "@/shared/brand/brand-color";
 import {
   DEFAULT_EVENT_DESCRIPTION,
   DEFAULT_EVENT_TITLE,
-} from "@/lib/event-metadata";
-import { getEventShareCardMedia } from "@/lib/event-settings.service";
+} from "@/features/event-sharing/event-metadata";
+import { getEventShareCardMedia } from "@/features/event-settings/server/event-settings-media.query";
 
 export const alt = "Baithani event shared-link preview";
 export const size = { width: 1200, height: 630 };

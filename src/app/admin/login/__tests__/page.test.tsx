@@ -8,16 +8,16 @@ const mocks = vi.hoisted(() => ({
   getEventSettings: vi.fn(),
 }));
 
-vi.mock("@/lib/auth.service", () => ({
+vi.mock("@/features/admin-auth/server/admin-session.service", () => ({
   isAdminAuthenticated: mocks.isAdminAuthenticated,
 }));
-vi.mock("@/lib/event-settings.service", () => ({
+vi.mock("@/features/event-settings/server/event-settings.query", () => ({
   getEventSettings: mocks.getEventSettings,
 }));
-vi.mock("@/components/theme/ThemeToggle", () => ({
+vi.mock("@/components/theme/theme-toggle", () => ({
   ThemeToggle: () => <button type="button">Theme</button>,
 }));
-vi.mock("../LoginForm", () => ({
+vi.mock("@/features/admin-auth/admin-login-form", () => ({
   LoginForm: () => <form>Login</form>,
 }));
 

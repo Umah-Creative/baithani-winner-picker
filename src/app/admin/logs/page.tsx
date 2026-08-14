@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { AppFooter } from "@/components/layout/AppFooter";
-import { isAdminAuthenticated } from "@/lib/auth.service";
-import { getAdminAuditLogPage } from "@/lib/admin-logs.service";
-
-import { AdminHeader } from "../AdminHeader";
-import { LogsTable } from "./LogsTable";
+import { AdminHeader } from "@/components/layout/admin-header";
+import { AppFooter } from "@/components/layout/app-footer";
+import { isAdminAuthenticated } from "@/features/admin-auth/server/admin-session.service";
+import { LogsTable } from "@/features/audit-log/audit-log-table";
+import { getAdminAuditLogPage } from "@/features/audit-log/server/audit-log.query";
 
 export const metadata: Metadata = { title: "Admin audit logs" };
 export const dynamic = "force-dynamic";

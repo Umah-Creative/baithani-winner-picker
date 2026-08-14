@@ -11,18 +11,20 @@ const mocks = vi.hoisted(() => ({
   getAdminAuditLogPage: vi.fn(),
 }));
 
-vi.mock("@/lib/auth.service", () => ({
+vi.mock("@/features/admin-auth/server/admin-session.service", () => ({
   isAdminAuthenticated: mocks.isAdminAuthenticated,
 }));
-vi.mock("@/lib/actions", () => ({ logoutAdmin: vi.fn() }));
+vi.mock("@/features/admin-auth/admin-auth.action", () => ({
+  logoutAdmin: vi.fn(),
+}));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-vi.mock("@/lib/admin-logs.service", () => ({
+vi.mock("@/features/audit-log/server/audit-log.query", () => ({
   getAdminAuditLogPage: mocks.getAdminAuditLogPage,
 }));
-vi.mock("../../AdminHeader", () => ({
+vi.mock("@/components/layout/admin-header", () => ({
   AdminHeader: () => <header>Admin</header>,
 }));
-vi.mock("../LogsTable", () => ({
+vi.mock("@/features/audit-log/audit-log-table", () => ({
   LogsTable: () => <div>Logs</div>,
 }));
 

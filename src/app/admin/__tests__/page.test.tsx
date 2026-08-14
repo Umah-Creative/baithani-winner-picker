@@ -9,19 +9,19 @@ const mocks = vi.hoisted(() => ({
   resolveSiteUrl: vi.fn(),
 }));
 
-vi.mock("@/lib/auth.service", () => ({
+vi.mock("@/features/admin-auth/server/admin-session.service", () => ({
   isAdminAuthenticated: mocks.isAdminAuthenticated,
 }));
-vi.mock("@/lib/event-settings.service", () => ({
+vi.mock("@/features/event-settings/server/event-settings.query", () => ({
   getEventSettings: mocks.getEventSettings,
 }));
-vi.mock("@/lib/site-url", () => ({
+vi.mock("@/shared/site-url/resolve-site-url.server", () => ({
   resolveSiteUrl: mocks.resolveSiteUrl,
 }));
-vi.mock("../AdminHeader", () => ({
+vi.mock("@/components/layout/admin-header", () => ({
   AdminHeader: () => <header>Admin</header>,
 }));
-vi.mock("../SettingsForm", () => ({
+vi.mock("@/features/event-settings/event-settings-form", () => ({
   SettingsForm: (props: { shareUrl?: string }) => (
     <form data-share-url={props.shareUrl}>Settings</form>
   ),

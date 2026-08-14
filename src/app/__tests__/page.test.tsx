@@ -7,10 +7,10 @@ const mocks = vi.hoisted(() => ({
   getEventSettings: vi.fn(),
 }));
 
-vi.mock("@/lib/event-settings.service", () => ({
+vi.mock("@/features/event-settings/server/event-settings.query", () => ({
   getEventSettings: mocks.getEventSettings,
 }));
-vi.mock("@/components/picker/Picker", () => ({
+vi.mock("@/features/picker/picker", () => ({
   Picker: () => <div>Picker</div>,
 }));
 

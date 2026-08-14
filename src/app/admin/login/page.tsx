@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { AppFooter } from "@/components/layout/AppFooter";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { isAdminAuthenticated } from "@/lib/auth.service";
-import { getEventSettings } from "@/lib/event-settings.service";
-
-import { LoginForm } from "./LoginForm";
+import { AppFooter } from "@/components/layout/app-footer";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { LoginForm } from "@/features/admin-auth/admin-login-form";
+import { isAdminAuthenticated } from "@/features/admin-auth/server/admin-session.service";
+import { getEventSettings } from "@/features/event-settings/server/event-settings.query";
 
 export const metadata: Metadata = {
   title: "Admin Login",

@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-import { AppFooter } from "@/components/layout/AppFooter";
-import { Picker } from "@/components/picker/Picker";
-import { getEventSettings } from "@/lib/event-settings.service";
+import { AppFooter } from "@/components/layout/app-footer";
+import { getEventSettings } from "@/features/event-settings/server/event-settings.query";
+import { Picker } from "@/features/picker/picker";
 
 export const dynamic = "force-dynamic";
 
