@@ -1,11 +1,18 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { CheckIcon, CopyIcon } from "lucide-react";
+import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createBrandPalette } from "@/lib/brand-color";
 
+export type SettingsShareState = "setup" | "draft" | "saved";
+
 type SettingsPreviewProps = {
+  shareUrl?: string;
+  shareState: SettingsShareState;
   title: string;
   description: string;
   accentColor: string;
@@ -33,6 +40,8 @@ function PreviewLogo(props: { logoUrl?: string; logoAlt: string }) {
 
 export function SettingsPreview(props: SettingsPreviewProps) {
   const {
+    shareUrl,
+    shareState,
     title,
     description,
     accentColor,
@@ -42,6 +51,7 @@ export function SettingsPreview(props: SettingsPreviewProps) {
     maxRange,
     excludedNumbers,
   } = props;
+  const [copied, setCopied] = useState(false);
   const palette = createBrandPalette(accentColor);
   const rangeIsValid =
     Number.isSafeInteger(minRange) &&
@@ -63,6 +73,32 @@ export function SettingsPreview(props: SettingsPreviewProps) {
     "--preview-display-light": palette.displayLight,
     "--preview-display-dark": palette.displayDark,
   } as CSSProperties;
+  const copyDisabled = !shareUrl || shareState === "setup";
+  const shareGuidance = !shareUrl
+    ? "Set SITE_URL to enable link copying."
+    : shareState === "setup"
+      ? "Save event settings before sharing this link."
+      : shareState === "draft"
+        ? "This preview has unsaved changes. The copied link still opens the last saved version."
+        : "Copy the public event link to share this saved event.";
+
+  useEffect(() => {
+    if (!copied) return;
+
+    const timer = window.setTimeout(() => setCopied(false), 2_000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  async function copyEventLink() {
+    if (copyDisabled || !shareUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+    } catch {
+      toast.error("Could not copy the event link. Try again.");
+    }
+  }
 
   return (
     <aside
@@ -138,9 +174,27 @@ export function SettingsPreview(props: SettingsPreviewProps) {
                   </p>
                 </div>
               </div>
-              <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                Preview of the card shown when this link is shared.
-              </p>
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs leading-5 text-muted-foreground">
+                  {shareGuidance}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 self-start sm:self-auto"
+                  disabled={copyDisabled}
+                  onClick={copyEventLink}
+                  aria-live="polite"
+                >
+                  {copied ? (
+                    <CheckIcon data-icon="inline-start" aria-hidden="true" />
+                  ) : (
+                    <CopyIcon data-icon="inline-start" aria-hidden="true" />
+                  )}
+                  {copied ? "Copied" : "Copy event link"}
+                </Button>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { isAdminAuthenticated } from "@/lib/auth.service";
 import { getEventSettings } from "@/lib/event-settings.service";
+import { resolveSiteUrl } from "@/lib/site-url";
 
 import { AdminHeader } from "./AdminHeader";
 import { SettingsForm } from "./SettingsForm";
@@ -19,7 +20,10 @@ export default async function AdminPage() {
     redirect("/admin/login");
   }
 
-  const settings = await getEventSettings();
+  const [settings, siteUrl] = await Promise.all([
+    getEventSettings(),
+    resolveSiteUrl(),
+  ]);
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:py-10">
@@ -30,7 +34,7 @@ export default async function AdminPage() {
       />
 
       <div className="flex-1">
-        <SettingsForm settings={settings} />
+        <SettingsForm settings={settings} shareUrl={siteUrl?.toString()} />
       </div>
       <AppFooter className="mt-8" />
     </main>
