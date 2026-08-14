@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { getEventSettings } from "@/lib/event-settings.service";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,24 @@ const geistMono = Geist_Mono({
 });
 
 export const dynamic = "force-dynamic";
+
+const THEME_STORAGE_KEY = "baithani-winner-picker:theme";
+const themeScript = `
+  (() => {
+    try {
+      const stored = window.localStorage.getItem("${THEME_STORAGE_KEY}");
+      const theme = stored === "light" || stored === "dark"
+        ? stored
+        : window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      const root = document.documentElement;
+      root.classList.toggle("dark", theme === "dark");
+      root.dataset.theme = theme;
+      root.style.colorScheme = theme;
+    } catch {}
+  })();
+`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getEventSettings();
@@ -84,8 +103,13 @@ export default async function RootLayout({
         } as React.CSSProperties
       }
     >
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <ThemeProvider>{children}</ThemeProvider>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
+        <ThemeProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

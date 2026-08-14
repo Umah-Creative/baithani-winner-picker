@@ -19,50 +19,37 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "baithani-winner-picker:theme";
 
-function readStoredTheme(): Theme {
+function readDocumentTheme(): Theme {
   if (typeof window === "undefined") {
-    return "dark";
+    return "light";
   }
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
 
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored === "light" ? "light" : "dark";
-  } catch {
-    return "dark";
-  }
+function applyTheme(theme: Theme) {
+  const root = document.documentElement;
+  root.classList.toggle("dark", theme === "dark");
+  root.dataset.theme = theme;
+  root.style.colorScheme = theme;
 }
 
 export function ThemeProvider(props: { children: React.ReactNode }) {
   const { children } = props;
-  const [theme, setThemeState] = useState<Theme>("dark");
-  const [mounted, setMounted] = useState(false);
+  const [theme, setThemeState] = useState<Theme>("light");
 
   useEffect(() => {
-    // Hydrate from storage once on the client. The server always renders dark
-    // to avoid a flash, then we correct it before paint.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setThemeState(readStoredTheme());
-    setMounted(true);
+    setThemeState(readDocumentTheme());
   }, []);
 
-  useEffect(() => {
-    if (!mounted) {
-      return;
-    }
-
-    const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
-    root.style.colorScheme = theme;
-
-    try {
-      window.localStorage.setItem(STORAGE_KEY, theme);
-    } catch {
-      // Storage may be unavailable; theme still applies for this session.
-    }
-  }, [mounted, theme]);
-
   const setTheme = useCallback((next: Theme) => {
+    applyTheme(next);
     setThemeState(next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // Theme still applies for this session when storage is unavailable.
+    }
   }, []);
 
   return (

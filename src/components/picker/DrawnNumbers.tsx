@@ -1,54 +1,103 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { RefreshCcw, Undo2 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 type DrawnNumbersProps = {
   drawnNumbers: number[];
+  disabled: boolean;
+  reduceMotion: boolean;
   onUndoLast: () => void;
-  onClear: () => void;
+  onRequestNewSession: () => void;
 };
 
 export function DrawnNumbers(props: DrawnNumbersProps) {
-  const { drawnNumbers, onUndoLast, onClear } = props;
+  const {
+    drawnNumbers,
+    disabled,
+    reduceMotion,
+    onUndoLast,
+    onRequestNewSession,
+  } = props;
+  const railRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    railRef.current?.scrollTo({
+      left: railRef.current.scrollWidth,
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  }, [drawnNumbers.length, reduceMotion]);
 
   if (drawnNumbers.length === 0) {
     return null;
   }
 
   return (
-    <div className="w-full max-w-md rounded-2xl border border-border bg-card p-4 backdrop-blur">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+    <Card className="history-card w-full" size="sm">
+      <CardHeader className="items-center gap-3 sm:grid-cols-[1fr_auto]">
+        <CardTitle className="text-xs font-bold tracking-[0.16em] text-muted-foreground uppercase">
           Drawn numbers
-        </h2>
-        <span className="text-sm tabular-nums text-muted-foreground">
-          {drawnNumbers.length} drawn
-        </span>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {drawnNumbers.map((number, index) => (
-          <span
-            key={`${number}-${index}`}
-            className={
-              index === drawnNumbers.length - 1
-                ? "rounded-lg bg-primary px-2 py-1 text-sm font-semibold tabular-nums text-primary-foreground"
-                : "rounded-lg border border-border bg-muted px-2 py-1 text-sm tabular-nums text-foreground"
-            }
-          >
-            {number}
+        </CardTitle>
+        <CardAction>
+          <span className="text-xs font-medium tabular-nums text-muted-foreground">
+            {drawnNumbers.length} drawn
           </span>
-        ))}
-      </div>
+        </CardAction>
+      </CardHeader>
 
-      <div className="mt-4 flex items-center gap-2">
-        <Button onClick={onUndoLast} variant="ghost" size="sm">
+      <CardContent>
+        <div
+          ref={railRef}
+          className="history-rail flex min-w-0 gap-2 overflow-x-auto overflow-y-hidden pb-2"
+          aria-label="Drawn number history"
+        >
+          {drawnNumbers.map((number, index) => {
+            const latest = index === drawnNumbers.length - 1;
+            return (
+              <Badge
+                key={`${number}-${index}`}
+                variant={latest ? "latest" : "history"}
+                className="shrink-0 font-mono tabular-nums"
+              >
+                {number}
+              </Badge>
+            );
+          })}
+        </div>
+      </CardContent>
+
+      <CardFooter className="flex-wrap justify-between gap-2">
+        <Button
+          onClick={onUndoLast}
+          disabled={disabled}
+          variant="ghost"
+          size="sm"
+        >
+          <Undo2 data-icon="inline-start" />
           Undo last
         </Button>
-        <Button onClick={onClear} variant="destructive" size="sm">
-          Clear history
+
+        <Button
+          onClick={onRequestNewSession}
+          disabled={disabled}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCcw data-icon="inline-start" />
+          New session
         </Button>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

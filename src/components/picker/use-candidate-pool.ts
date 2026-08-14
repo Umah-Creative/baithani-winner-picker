@@ -29,7 +29,10 @@ function readDrawnNumbers(storageKey: string): number[] {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed.filter((value): value is number => typeof value === "number");
+    return parsed.filter(
+      (value): value is number =>
+        typeof value === "number" && Number.isInteger(value)
+    );
   } catch {
     return [];
   }
