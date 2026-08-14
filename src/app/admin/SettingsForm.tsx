@@ -617,7 +617,10 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                         key={preset}
                         type="button"
                         aria-label={`Use ${preset} accent color`}
-                        onClick={() => setAccentColor(preset)}
+                        onClick={() => {
+                          setAccentColor(preset);
+                          setDirty(true);
+                        }}
                         className="size-11 rounded-full border-2 border-background shadow-sm ring-1 ring-border transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-ring"
                         style={{ backgroundColor: preset }}
                       />

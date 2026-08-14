@@ -108,6 +108,20 @@ describe("SettingsForm logo controls", () => {
 });
 
 describe("SettingsForm accent color", () => {
+  it("marks a preset color selection as unsaved", async () => {
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    await user.click(
+      screen.getByRole("button", { name: "Use #632d50 accent color" })
+    );
+
+    expect(screen.getByLabelText<HTMLInputElement>("Accent color").value).toBe(
+      "#632d50"
+    );
+    expect(screen.getByText(/Unsaved changes/)).toBeTruthy();
+  });
+
   it("does not warn for the default color when its active action foreground passes contrast", () => {
     render(<SettingsForm settings={settings} />);
 
