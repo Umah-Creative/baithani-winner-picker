@@ -57,6 +57,12 @@ pnpm dev
 
 The Docker image runs migrations + seed on startup before starting the Next server. Dokploy should set `DATABASE_URL`, `ADMIN_PASSWORD`, and `ADMIN_SECRET` as environment variables.
 
+CI uses pnpm `11.8.0` and Node `22`; both are pinned via `packageManager`/`engines` and `.nvmrc`. The deploy workflow runs format, lint, and typecheck before building the image.
+
+The image is tagged by git SHA (not `:latest`) and uses GitHub Actions layer caching. Dokploy should point at the SHA-tagged image for reliable rollbacks.
+
+Known constraint: migrations run in the container entrypoint, so they are safe for a single replica. Running multiple replicas can race on migrations; use a one-shot migration job before scaling out.
+
 ```bash
 docker build -t baithani-winner-picker .
 docker run --env-file .env.local -p 3000:3000 baithani-winner-picker
