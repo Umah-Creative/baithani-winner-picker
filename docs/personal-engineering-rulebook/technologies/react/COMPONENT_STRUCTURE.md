@@ -7,8 +7,11 @@ Use with core, frontend, and TypeScript packs.
 - Apply these component conventions to project-authored code. Generated or vendor-shaped components follow the generated UI primitive policy from the frontend pack.
 - Accept `props`, then destructure inside function body.
 - Keep components focused on rendering and composition.
+- Keep one primary exported component per file.
 - Extract focused hooks or helpers when a component owns mixed effects, browser lifecycle wiring, document mutation, focus or keyboard handling, modal lifecycle, scroll or pointer behavior, or reusable interaction state.
-- Keep small render-coupled logic local when extraction adds no useful boundary.
+- Extract children that are stateful, independently meaningful, reusable, effect-owning, or domain-aware.
+- Tiny stateless private helpers may remain only when they are inseparable from the primary component and extraction would reduce clarity.
+- Keep small render-coupled logic local only when it satisfies that private-helper exception.
 
 ## Flat Or Foldered
 
