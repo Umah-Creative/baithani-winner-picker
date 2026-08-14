@@ -18,22 +18,14 @@ export type AdminAuditRequestMetadata = {
   requestId: string | null;
 };
 
-type AuditRequestMetadataOptions = {
-  trustedProxy?: boolean;
-};
-
-export type AdminAuditEventInput = {
+export type AdminAuditWriteInput = {
   action: AdminAuditAction;
   outcome: AdminAuditOutcome;
   actor: string;
-  request: AdminAuditRequestMetadata;
   metadata?: AdminAuditMetadata;
 };
 
-export type AdminAuditEvent = Omit<
-  AdminAuditEventInput,
-  "request" | "metadata"
-> &
+export type AdminAuditEvent = AdminAuditWriteInput &
   AdminAuditRequestMetadata & {
     occurredAt: Date;
     metadata: AdminAuditMetadata;
@@ -109,15 +101,15 @@ export function resolveLogoChange(
 }
 
 export function getAdminAuditRequestMetadata(
-  requestHeaders: Headers,
-  options: AuditRequestMetadataOptions = {}
+  requestHeaders: Headers
 ): AdminAuditRequestMetadata {
-  const forwardedFor = options.trustedProxy
+  const trustedProxy = process.env.TRUST_PROXY_HEADERS === "true";
+  const forwardedFor = trustedProxy
     ? requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim()
     : undefined;
 
   return {
-    ipAddress: options.trustedProxy
+    ipAddress: trustedProxy
       ? forwardedFor || requestHeaders.get("x-real-ip") || null
       : null,
     userAgent: requestHeaders.get("user-agent"),
@@ -128,13 +120,14 @@ export function getAdminAuditRequestMetadata(
 }
 
 export function buildAdminAuditEvent(
-  input: AdminAuditEventInput
+  input: AdminAuditWriteInput,
+  request: AdminAuditRequestMetadata
 ): AdminAuditEvent {
   return {
     action: input.action,
     outcome: input.outcome,
     actor: input.actor,
-    ...input.request,
+    ...request,
     occurredAt: new Date(),
     metadata: sanitizeAuditMetadata(input.metadata ?? {}),
   };

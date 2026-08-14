@@ -8,38 +8,22 @@ import { adminAuditLogs } from "@/db/schema";
 import {
   buildAdminAuditEvent,
   getAdminAuditRequestMetadata,
-  type AdminAuditEventInput,
+  type AdminAuditWriteInput,
 } from "./admin-audit.shared";
 
 export * from "./admin-audit.shared";
 
-function trustsProxyHeaders(): boolean {
-  return process.env.TRUST_PROXY_HEADERS === "true";
-}
-
 export async function writeAdminAuditLog(
-  input: AdminAuditEventInput
-): Promise<void> {
-  try {
-    const event = buildAdminAuditEvent(input);
-    await db.insert(adminAuditLogs).values(event);
-  } catch {
-    // Audit persistence is deliberately best-effort.
-  }
-}
-
-export async function writeCurrentAdminAuditLog(
-  input: Omit<AdminAuditEventInput, "request">
+  input: AdminAuditWriteInput
 ): Promise<void> {
   try {
     const requestHeaders = await headers();
-    await writeAdminAuditLog({
-      ...input,
-      request: getAdminAuditRequestMetadata(requestHeaders, {
-        trustedProxy: trustsProxyHeaders(),
-      }),
-    });
+    const event = buildAdminAuditEvent(
+      input,
+      getAdminAuditRequestMetadata(requestHeaders)
+    );
+    await db.insert(adminAuditLogs).values(event);
   } catch {
-    // Request metadata must not prevent the primary server action.
+    // Audit persistence is deliberately best-effort.
   }
 }

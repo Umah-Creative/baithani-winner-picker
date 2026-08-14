@@ -8,7 +8,7 @@ import {
   createAdminSession,
   isAdminAuthenticated,
 } from "@/lib/auth.service";
-import { writeCurrentAdminAuditLog } from "@/lib/admin-audit";
+import { writeAdminAuditLog } from "@/lib/admin-audit";
 import { saveEventSettings } from "@/lib/event-settings.mutate";
 import { parseExcludedNumbers } from "@/lib/event-settings.validation";
 import type {
@@ -23,9 +23,9 @@ export type ActionState = {
 };
 
 async function recordAdminAudit(
-  input: Parameters<typeof writeCurrentAdminAuditLog>[0]
+  input: Parameters<typeof writeAdminAuditLog>[0]
 ): Promise<void> {
-  await writeCurrentAdminAuditLog(input);
+  await writeAdminAuditLog(input);
 }
 
 export async function loginAdmin(

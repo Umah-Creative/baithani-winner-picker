@@ -40,22 +40,24 @@ describe("resolveLogoChange", () => {
 describe("buildAdminAuditEvent", () => {
   it("constructs an attributable, privacy-safe audit event", () => {
     expect(
-      buildAdminAuditEvent({
-        action: "settings.update",
-        outcome: "success",
-        actor: "admin",
-        request: {
+      buildAdminAuditEvent(
+        {
+          action: "settings.update",
+          outcome: "success",
+          actor: "admin",
+          metadata: {
+            before: { title: "Before" },
+            after: { title: "After" },
+            password: "secret",
+          },
+        },
+        {
           ipAddress: "203.0.113.8",
           userAgent: "Mozilla/5.0",
           acceptLanguage: "en-US",
           requestId: "req-123",
-        },
-        metadata: {
-          before: { title: "Before" },
-          after: { title: "After" },
-          password: "secret",
-        },
-      })
+        }
+      )
     ).toMatchObject({
       action: "settings.update",
       outcome: "success",
@@ -73,7 +75,7 @@ describe("buildAdminAuditEvent", () => {
 });
 
 describe("getAdminAuditRequestMetadata", () => {
-  it("ignores forgeable forwarding IP headers until a trusted proxy boundary opts in", () => {
+  it("does not let a direct caller opt into forwarding IP headers", () => {
     const requestHeaders = new Headers({
       "x-forwarded-for": "203.0.113.8, 198.51.100.7",
       "x-real-ip": "203.0.113.9",
@@ -82,14 +84,32 @@ describe("getAdminAuditRequestMetadata", () => {
       "x-request-id": "req-123",
     });
 
-    expect(getAdminAuditRequestMetadata(requestHeaders)).toEqual({
-      ipAddress: null,
-      userAgent: "Mozilla/5.0",
-      acceptLanguage: "en-US",
-      requestId: "req-123",
-    });
-    expect(
-      getAdminAuditRequestMetadata(requestHeaders, { trustedProxy: true })
-    ).toMatchObject({ ipAddress: "203.0.113.8" });
+    const previousTrustProxyHeaders = process.env.TRUST_PROXY_HEADERS;
+    delete process.env.TRUST_PROXY_HEADERS;
+
+    try {
+      // @ts-expect-error Direct callers cannot override the proxy policy.
+      const directCallerAttempt = getAdminAuditRequestMetadata(requestHeaders, {
+        trustedProxy: true,
+      });
+
+      expect(directCallerAttempt).toEqual({
+        ipAddress: null,
+        userAgent: "Mozilla/5.0",
+        acceptLanguage: "en-US",
+        requestId: "req-123",
+      });
+
+      process.env.TRUST_PROXY_HEADERS = "true";
+      expect(getAdminAuditRequestMetadata(requestHeaders)).toMatchObject({
+        ipAddress: "203.0.113.8",
+      });
+    } finally {
+      if (previousTrustProxyHeaders === undefined) {
+        delete process.env.TRUST_PROXY_HEADERS;
+      } else {
+        process.env.TRUST_PROXY_HEADERS = previousTrustProxyHeaders;
+      }
+    }
   });
 });
