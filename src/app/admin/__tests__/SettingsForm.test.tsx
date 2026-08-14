@@ -69,6 +69,16 @@ describe("SettingsForm logo controls", () => {
 });
 
 describe("SettingsForm accent color", () => {
+  it("does not warn for the default color when its active action foreground passes contrast", () => {
+    render(<SettingsForm settings={settings} />);
+
+    expect(
+      screen.queryByText(
+        "This color has limited contrast with one or more text colors. Check button labels carefully."
+      )
+    ).toBeNull();
+  });
+
   it("warns for a color with weak contrast against one text color", async () => {
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
@@ -109,6 +119,22 @@ describe("SettingsForm excluded-number editor", () => {
       screen.getByText("Excluded number 3 must be between 5 and 100.")
     ).toBeTruthy();
     expect(screen.getByText("96 eligible numbers")).toBeTruthy();
+  });
+
+  it("rejects live ranges outside the server bounds before accepting entries", async () => {
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    await user.clear(screen.getByLabelText("Min range"));
+    await user.type(screen.getByLabelText("Min range"), "0");
+    await user.clear(screen.getByLabelText("Max range"));
+    await user.type(screen.getByLabelText("Max range"), "10001");
+    await user.type(screen.getByLabelText("Excluded numbers"), "1{Enter}");
+
+    expect(
+      screen.getByText("Set a valid range before excluding numbers.")
+    ).toBeTruthy();
+    expect(screen.getByText("0 eligible numbers")).toBeTruthy();
   });
 });
 

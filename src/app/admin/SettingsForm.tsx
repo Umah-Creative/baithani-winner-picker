@@ -14,6 +14,7 @@ import { ImagePlusIcon, XIcon } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
 import { updateEventSettings, type ActionState } from "@/lib/actions";
+import { createBrandPalette } from "@/lib/brand-color";
 import type { EventSettingsView } from "@/lib/event-settings.type";
 import {
   AlertDialog,
@@ -60,17 +61,27 @@ function formatSavedAt(value: string): string {
   }).format(new Date(value));
 }
 
-function contrastRatio(color: string): number | undefined {
+function activeForegroundContrast(color: string): number | undefined {
   if (!/^#[0-9a-f]{6}$/i.test(color)) return undefined;
-  const channels = [1, 3, 5].map(
-    (start) => Number.parseInt(color.slice(start, start + 2), 16) / 255
+
+  const luminance = (hex: string) => {
+    const channels = [1, 3, 5].map(
+      (start) => Number.parseInt(hex.slice(start, start + 2), 16) / 255
+    );
+    return channels.reduce((total, channel, index) => {
+      const linear =
+        channel <= 0.03928
+          ? channel / 12.92
+          : ((channel + 0.055) / 1.055) ** 2.4;
+      return total + linear * [0.2126, 0.7152, 0.0722][index];
+    }, 0);
+  };
+  const accentLuminance = luminance(color);
+  const foregroundLuminance = luminance(createBrandPalette(color).foreground);
+  return (
+    (Math.max(accentLuminance, foregroundLuminance) + 0.05) /
+    (Math.min(accentLuminance, foregroundLuminance) + 0.05)
   );
-  const luminance = channels.reduce((total, channel, index) => {
-    const linear =
-      channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-    return total + linear * [0.2126, 0.7152, 0.0722][index];
-  }, 0);
-  return Math.min((luminance + 0.05) / 0.05, 1.05 / (luminance + 0.05));
 }
 
 function FieldMessage({ id, error }: { id: string; error?: string }) {
@@ -295,6 +306,8 @@ function ExcludedNumbersEditor({
   const rangeIsValid =
     Number.isSafeInteger(minRange) &&
     Number.isSafeInteger(maxRange) &&
+    minRange >= 1 &&
+    maxRange <= 10_000 &&
     minRange < maxRange;
   const inRangeNumbers = rangeIsValid
     ? numbers.filter((number) => number >= minRange && number <= maxRange)
@@ -438,7 +451,10 @@ export function SettingsForm({ settings }: SettingsFormProps) {
   );
   const [dirty, setDirty] = useState(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
-  const contrast = useMemo(() => contrastRatio(accentColor), [accentColor]);
+  const contrast = useMemo(
+    () => activeForegroundContrast(accentColor),
+    [accentColor]
+  );
   const fieldErrors = state.fieldErrors;
   const minRange = Number(minRangeValue);
   const maxRange = Number(maxRangeValue);
