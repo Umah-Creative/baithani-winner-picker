@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type CandidatePoolOptions = {
   min: number;
@@ -11,8 +11,10 @@ type CandidatePoolOptions = {
 
 type CandidatePoolResult = {
   candidates: number[];
+  drawnNumbers: number[];
   drawnCount: number;
   draw: (winner: number) => void;
+  undoLast: () => void;
   reset: () => void;
 };
 
@@ -39,9 +41,16 @@ export function useCandidatePool({
   excluded,
   storageKey,
 }: CandidatePoolOptions): CandidatePoolResult {
-  const [drawn, setDrawn] = useState<Set<number>>(
-    () => new Set(readDrawnNumbers(storageKey)),
-  );
+  const [drawnNumbers, setDrawnNumbers] = useState<number[]>([]);
+
+  useEffect(() => {
+    // Hydrate persisted draws on the client after mount to avoid a
+    // server/client mismatch from localStorage access.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDrawnNumbers(readDrawnNumbers(storageKey));
+  }, [storageKey]);
+
+  const drawn = useMemo(() => new Set(drawnNumbers), [drawnNumbers]);
 
   const candidates = useMemo(() => {
     const excludedSet = new Set(excluded);
@@ -57,43 +66,49 @@ export function useCandidatePool({
   }, [drawn, excluded, max, min]);
 
   const persist = useCallback(
-    (nextDrawn: Set<number>) => {
+    (nextDrawn: number[]) => {
       if (typeof window === "undefined") {
         return;
       }
       try {
-        window.localStorage.setItem(
-          storageKey,
-          JSON.stringify(Array.from(nextDrawn)),
-        );
+        window.localStorage.setItem(storageKey, JSON.stringify(nextDrawn));
       } catch {
-        // Storage may be unavailable; the in-memory set still works for the session.
+        // Storage may be unavailable; the in-memory list still works for the session.
       }
     },
-    [storageKey],
+    [storageKey]
   );
 
   const draw = useCallback(
     (winner: number) => {
-      setDrawn((current) => {
-        const next = new Set(current);
-        next.add(winner);
+      setDrawnNumbers((current) => {
+        const next = [...current, winner];
         persist(next);
         return next;
       });
     },
-    [persist],
+    [persist]
   );
 
+  const undoLast = useCallback(() => {
+    setDrawnNumbers((current) => {
+      const next = current.slice(0, -1);
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
   const reset = useCallback(() => {
-    setDrawn(new Set());
-    persist(new Set());
+    setDrawnNumbers([]);
+    persist([]);
   }, [persist]);
 
   return {
     candidates,
-    drawnCount: drawn.size,
+    drawnNumbers,
+    drawnCount: drawnNumbers.length,
     draw,
+    undoLast,
     reset,
   };
 }

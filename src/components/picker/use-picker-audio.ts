@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { AudioEngine } from "./AudioEngine";
 
 export function usePickerAudio() {
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const engineRef = useRef<AudioEngine | null>(null);
 
   useEffect(() => {
@@ -23,6 +23,8 @@ export function usePickerAudio() {
     toggleMuted: () => setMuted((current) => !current),
     startTicking: () => engineRef.current?.startTicking(muted),
     stopTicking: () => engineRef.current?.stopTicking(),
+    startDrumroll: () => engineRef.current?.startDrumroll(muted),
+    stopDrumroll: () => engineRef.current?.stopDrumroll(),
     playWin: () => void engineRef.current?.playWin(muted),
   };
 }

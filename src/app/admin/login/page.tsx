@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { isAdminAuthenticated } from "@/lib/auth.service";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 import { LoginForm } from "./LoginForm";
 
@@ -17,7 +18,10 @@ export default async function AdminLoginPage() {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center px-6">
+    <main className="relative flex min-h-svh items-center justify-center px-6">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <LoginForm />
     </main>
   );

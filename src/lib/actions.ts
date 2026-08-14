@@ -22,7 +22,7 @@ export type ActionState = {
 
 export async function loginAdmin(
   _state: ActionState,
-  formData: FormData,
+  formData: FormData
 ): Promise<ActionState> {
   const password = String(formData.get("password") ?? "");
   const expected = process.env.ADMIN_PASSWORD;
@@ -43,7 +43,7 @@ export async function logoutAdmin(): Promise<void> {
 async function parseFormData(formData: FormData): Promise<EventSettingsInput> {
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
-  const accentColor = String(formData.get("accentColor") ?? "#f0b429").trim();
+  const accentColor = String(formData.get("accentColor") ?? "#d076b4").trim();
   const minRange = Number(formData.get("minRange"));
   const maxRange = Number(formData.get("maxRange"));
   const logoAlt = String(formData.get("logoAlt") ?? "").trim();
@@ -80,7 +80,7 @@ async function parseFormData(formData: FormData): Promise<EventSettingsInput> {
 
 export async function updateEventSettings(
   _state: ActionState,
-  formData: FormData,
+  formData: FormData
 ): Promise<ActionState> {
   if (!(await isAdminAuthenticated())) {
     return { error: "Not authorized." };

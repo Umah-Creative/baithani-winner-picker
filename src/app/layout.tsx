@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 
 import { getEventSettings } from "@/lib/event-settings.service";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
-
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,7 +23,8 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getEventSettings();
 
-  const title = settings?.title ?? "Baithani Winner Picker";
+  const baseTitle = settings?.title ?? "Baithani Winner Picker";
+  const title = `GPT Baithani - ${baseTitle}`;
   const description =
     settings?.description ?? "Doorprize winner picker for Baithani events.";
 
@@ -71,14 +71,22 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full antialiased dark", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
+      suppressHydrationWarning
+      className={cn(
+        "h-full antialiased",
+        geistSans.variable,
+        geistMono.variable,
+        "font-sans"
+      )}
       style={
         {
-          "--brand": settings?.accentColor ?? "#f0b429",
+          "--brand": settings?.accentColor ?? "#d076b4",
         } as React.CSSProperties
       }
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

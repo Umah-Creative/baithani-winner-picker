@@ -6,14 +6,15 @@ import confetti from "canvas-confetti";
 type ConfettiLayerProps = {
   active: boolean;
   accent: string;
+  reduceMotion: boolean;
 };
 
 export function ConfettiLayer(props: ConfettiLayerProps) {
-  const { active, accent } = props;
+  const { active, accent, reduceMotion } = props;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    if (!active || !canvasRef.current) {
+    if (!active || reduceMotion || !canvasRef.current) {
       return;
     }
 
@@ -29,7 +30,11 @@ export function ConfettiLayer(props: ConfettiLayerProps) {
       origin: { y: 0.6 },
       colors: [accent, "#ffffff", "#ffd166"],
     });
-  }, [active, accent]);
+
+    return () => {
+      burst.reset();
+    };
+  }, [active, accent, reduceMotion]);
 
   return (
     <canvas

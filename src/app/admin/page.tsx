@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { logoutAdmin } from "@/lib/actions";
 import { isAdminAuthenticated } from "@/lib/auth.service";
 import { getEventSettings } from "@/lib/event-settings.service";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 import { SettingsForm } from "./SettingsForm";
 
@@ -22,16 +23,21 @@ export default async function AdminPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white">Event Settings</h1>
-        <form action={logoutAdmin}>
-          <button
-            type="submit"
-            className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
-          >
-            Log out
-          </button>
-        </form>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-foreground">
+          Event Settings
+        </h1>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <form action={logoutAdmin}>
+            <button
+              type="submit"
+              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              Log out
+            </button>
+          </form>
+        </div>
       </div>
 
       <SettingsForm settings={settings} />

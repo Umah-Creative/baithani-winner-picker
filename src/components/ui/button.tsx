@@ -4,22 +4,18 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all outline-none select-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold transition-all outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default:
-          "bg-[var(--brand)] text-[var(--background)] hover:brightness-110",
-        primary:
-          "bg-[var(--brand)] text-[var(--background)] hover:brightness-110",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
         secondary:
-          "border border-white/20 bg-white/10 text-white backdrop-blur hover:bg-white/20",
-        ghost:
-          "text-white/70 hover:bg-white/10 hover:text-white",
+          "border border-border bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
         outline:
-          "border border-white/20 bg-transparent text-white hover:bg-white/10",
+          "border border-border bg-background text-foreground hover:bg-muted",
         destructive:
-          "bg-red-500/20 text-red-200 hover:bg-red-500/30",
+          "bg-destructive/10 text-destructive hover:bg-destructive/20",
       },
       size: {
         default: "h-10 px-5 py-2",
@@ -32,7 +28,7 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  },
+  }
 );
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &

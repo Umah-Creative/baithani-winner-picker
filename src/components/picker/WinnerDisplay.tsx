@@ -21,48 +21,51 @@ export function WinnerDisplay(props: WinnerDisplayProps) {
   const isWinner = state.status === "winner";
 
   return (
-    <div
-      className="relative flex min-h-[280px] w-full items-center justify-center"
-      aria-live="polite"
-    >
+    <div className="relative flex min-h-[300px] w-full items-center justify-center pb-4">
       {exhausted ? (
         <div className="text-center">
-          <p className="text-2xl font-semibold text-white">All numbers drawn</p>
-          <p className="mt-2 text-sm text-white/60">
+          <p className="text-2xl font-semibold text-foreground">
+            All numbers drawn
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
             Reset drawn numbers to draw again.
           </p>
         </div>
       ) : displayNumber !== null ? (
         <div className="relative flex flex-col items-center">
           {isWinner ? (
-            <span className="mb-4 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-white/80 backdrop-blur">
+            <span className="mb-4 rounded-full border border-border bg-muted px-4 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-foreground backdrop-blur">
               Winner
             </span>
           ) : null}
           <div
-            className="relative text-[clamp(6rem,22vw,16rem)] font-black leading-none tabular-nums transition-transform duration-200"
+            className="relative text-[clamp(6rem,22vw,15rem)] font-black leading-none tabular-nums transition-transform duration-200"
             style={{
-              color: isWinner ? accent : "rgba(255,255,255,0.92)",
+              color: isWinner ? accent : "var(--foreground)",
               textShadow: isWinner
-                ? `0 0 30px ${accent}, 0 0 80px ${accent}, 0 0 140px ${accent}`
-                : "0 0 24px rgba(255,255,255,0.35)",
-              transform: isWinner ? "scale(1.06)" : "scale(1)",
+                ? `0 0 24px color-mix(in oklab, ${accent} 70%, transparent), 0 0 60px color-mix(in oklab, ${accent} 45%, transparent)`
+                : "0 0 16px color-mix(in oklab, var(--foreground) 25%, transparent)",
+              transform: isWinner ? "scale(1.04)" : "scale(1)",
             }}
           >
             {displayNumber}
           </div>
           {isWinner ? (
             <div
-              className="pointer-events-none absolute inset-0 -z-10 rounded-full opacity-40 blur-3xl"
+              className="pointer-events-none absolute inset-0 -z-10 rounded-full opacity-25 blur-3xl"
               style={{ background: accent }}
             />
           ) : null}
         </div>
       ) : (
-        <p className="text-xl font-medium text-white/50">
+        <p className="text-xl font-medium text-muted-foreground">
           Press START to draw a winner
         </p>
       )}
+
+      <span role="status" className="sr-only">
+        {isWinner ? `Winner: ${state.winner}` : ""}
+      </span>
     </div>
   );
 }

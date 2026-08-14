@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { updateEventSettings, type ActionState } from "@/lib/actions";
 import type { EventSettingsView } from "@/lib/event-settings.type";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const initialState: ActionState = {};
 
@@ -16,66 +17,74 @@ export function SettingsForm(props: SettingsFormProps) {
   const { settings } = props;
   const [state, formAction, pending] = useActionState(
     updateEventSettings,
-    initialState,
+    initialState
   );
 
   return (
     <form
       action={formAction}
-      className="mt-6 space-y-5 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur"
+      className="mt-6 space-y-5 rounded-2xl border border-border bg-card p-6 shadow-sm"
     >
-      <label className="block text-sm font-medium text-white/70">
+      <label className="block text-sm font-medium text-muted-foreground">
         Title
-        <input
+        <Input
           type="text"
           name="title"
           required
           defaultValue={settings?.title ?? ""}
-          className="mt-2 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white outline-none focus:border-[var(--brand)]"
+          aria-invalid={Boolean(state.fieldErrors?.title)}
+          aria-describedby={
+            state.fieldErrors?.title ? "title-error" : undefined
+          }
+          className="mt-2"
         />
         {state.fieldErrors?.title ? (
-          <span className="mt-1 block text-xs text-red-300">
+          <span
+            id="title-error"
+            role="alert"
+            className="mt-1 block text-xs text-destructive"
+          >
             {state.fieldErrors.title}
           </span>
         ) : null}
       </label>
 
-      <label className="block text-sm font-medium text-white/70">
+      <label className="block text-sm font-medium text-muted-foreground">
         Description
         <textarea
           name="description"
           defaultValue={settings?.description ?? ""}
-          className="mt-2 min-h-24 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white outline-none focus:border-[var(--brand)]"
+          className="mt-2 min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
         />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium text-white/70">
+        <label className="block text-sm font-medium text-muted-foreground">
           Accent color
           <input
             type="color"
             name="accentColor"
-            defaultValue={settings?.accentColor ?? "#f0b429"}
-            className="mt-2 block h-12 w-full cursor-pointer rounded-lg border border-white/20 bg-white/10"
+            defaultValue={settings?.accentColor ?? "#d076b4"}
+            className="mt-2 block h-12 w-full cursor-pointer rounded-lg border border-input bg-background"
           />
           {state.fieldErrors?.accentColor ? (
-            <span className="mt-1 block text-xs text-red-300">
+            <span role="alert" className="mt-1 block text-xs text-destructive">
               {state.fieldErrors.accentColor}
             </span>
           ) : null}
         </label>
 
-        <div className="block text-sm font-medium text-white/70">
+        <div className="block text-sm font-medium text-muted-foreground">
           <span>Logo</span>
           {settings?.hasLogo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src="/api/media/logo"
               alt={settings.logoAlt}
-              className="mt-2 max-h-24 w-auto rounded-lg border border-white/10 object-contain"
+              className="mt-2 max-h-24 w-auto rounded-lg border border-border object-contain"
             />
           ) : (
-            <p className="mt-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/40">
+            <p className="mt-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
               No logo uploaded yet
             </p>
           )}
@@ -83,85 +92,96 @@ export function SettingsForm(props: SettingsFormProps) {
             type="file"
             name="logo"
             accept="image/*"
-            className="mt-2 block w-full text-sm text-white/60 file:mr-3 file:rounded-full file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-white"
+            className="mt-2 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-primary-foreground"
           />
           {settings?.hasLogo ? (
-            <label className="mt-2 flex items-center gap-2 text-sm font-normal text-white/70">
+            <label className="mt-2 flex items-center gap-2 text-sm font-normal text-muted-foreground">
               <input type="checkbox" name="removeLogo" />
               Remove current logo
             </label>
           ) : null}
           {state.fieldErrors?.logo ? (
-            <span className="mt-1 block text-xs text-red-300">
+            <span role="alert" className="mt-1 block text-xs text-destructive">
               {state.fieldErrors.logo}
             </span>
           ) : null}
         </div>
       </div>
 
-      <label className="block text-sm font-medium text-white/70">
+      <label className="block text-sm font-medium text-muted-foreground">
         Logo alt text
-        <input
+        <Input
           type="text"
           name="logoAlt"
           defaultValue={settings?.logoAlt ?? ""}
-          className="mt-2 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white outline-none focus:border-[var(--brand)]"
+          className="mt-2"
         />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium text-white/70">
+        <label className="block text-sm font-medium text-muted-foreground">
           Min range
-          <input
+          <Input
             type="number"
             name="minRange"
             required
             defaultValue={settings?.minRange ?? 1}
-            className="mt-2 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white outline-none focus:border-[var(--brand)]"
+            aria-invalid={Boolean(state.fieldErrors?.minRange)}
+            className="mt-2"
           />
           {state.fieldErrors?.minRange ? (
-            <span className="mt-1 block text-xs text-red-300">
+            <span role="alert" className="mt-1 block text-xs text-destructive">
               {state.fieldErrors.minRange}
             </span>
           ) : null}
         </label>
 
-        <label className="block text-sm font-medium text-white/70">
+        <label className="block text-sm font-medium text-muted-foreground">
           Max range
-          <input
+          <Input
             type="number"
             name="maxRange"
             required
             defaultValue={settings?.maxRange ?? 1000}
-            className="mt-2 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white outline-none focus:border-[var(--brand)]"
+            aria-invalid={Boolean(state.fieldErrors?.maxRange)}
+            className="mt-2"
           />
           {state.fieldErrors?.maxRange ? (
-            <span className="mt-1 block text-xs text-red-300">
+            <span role="alert" className="mt-1 block text-xs text-destructive">
               {state.fieldErrors.maxRange}
             </span>
           ) : null}
         </label>
       </div>
 
-      <label className="block text-sm font-medium text-white/70">
+      <label className="block text-sm font-medium text-muted-foreground">
         Excluded numbers (comma-separated)
-        <input
+        <Input
           type="text"
           name="excludedNumbers"
           defaultValue={settings?.excludedNumbers.join(", ") ?? ""}
           placeholder="13, 42, 99"
-          className="mt-2 w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white outline-none focus:border-[var(--brand)]"
+          className="mt-2"
         />
       </label>
 
       {state.error ? (
-        <p className="text-sm text-red-300">{state.error}</p>
+        <p role="alert" className="text-sm text-destructive">
+          {state.error}
+        </p>
       ) : null}
       {state.success ? (
-        <p className="text-sm text-emerald-300">Settings saved.</p>
+        <p role="status" className="text-sm text-foreground">
+          Settings saved.
+        </p>
       ) : null}
 
-      <Button type="submit" disabled={pending} variant="primary" className="w-full">
+      <Button
+        type="submit"
+        disabled={pending}
+        variant="default"
+        className="w-full"
+      >
         {pending ? "Saving…" : "Save settings"}
       </Button>
     </form>

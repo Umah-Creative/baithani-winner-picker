@@ -9,7 +9,7 @@ export default async function Home() {
   if (!settings) {
     return (
       <main className="flex min-h-svh items-center justify-center px-6">
-        <p className="text-lg text-white/70">
+        <p className="text-lg text-muted-foreground">
           Picker is not configured yet. Run the migration and create the active
           event row.
         </p>
