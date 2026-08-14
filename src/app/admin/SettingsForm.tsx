@@ -1,210 +1,649 @@
 "use client";
 
-import { useActionState } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type KeyboardEvent,
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { ImagePlusIcon, XIcon } from "lucide-react";
+import { toast, Toaster } from "sonner";
 
 import { updateEventSettings, type ActionState } from "@/lib/actions";
 import type { EventSettingsView } from "@/lib/event-settings.type";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 const initialState: ActionState = {};
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_LOGO_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+]);
+const COLOR_PRESETS = ["#d076b4", "#632d50", "#f4a6d7", "#d6a83b"];
 
-type SettingsFormProps = {
-  settings: EventSettingsView | null;
-};
+type SettingsFormProps = { settings: EventSettingsView | null };
 
-export function SettingsForm(props: SettingsFormProps) {
-  const { settings } = props;
+function formatFileSize(bytes: number): string {
+  return `${(bytes / 1024 / 1024).toFixed(bytes < 1024 * 1024 ? 2 : 1)} MB`;
+}
+
+function formatSavedAt(value: string): string {
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function contrastRatio(color: string): number | undefined {
+  if (!/^#[0-9a-f]{6}$/i.test(color)) return undefined;
+  const channels = [1, 3, 5].map(
+    (start) => Number.parseInt(color.slice(start, start + 2), 16) / 255
+  );
+  const luminance = channels.reduce((total, channel, index) => {
+    const linear =
+      channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    return total + linear * [0.2126, 0.7152, 0.0722][index];
+  }, 0);
+  return Math.max((luminance + 0.05) / 0.05, 1.05 / (luminance + 0.05));
+}
+
+function FieldMessage({ id, error }: { id: string; error?: string }) {
+  return error ? <FieldError id={id}>{error}</FieldError> : null;
+}
+
+function LogoDropzone({
+  hasLogo,
+  existingLogoAlt,
+  updatedAt,
+  error,
+  pending,
+  onDirty,
+}: {
+  hasLogo: boolean;
+  existingLogoAlt: string;
+  updatedAt: string;
+  error?: string;
+  pending: boolean;
+  onDirty: () => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewUrlRef = useRef<string | null>(null);
+  const [preview, setPreview] = useState<{ file: File; url: string } | null>(
+    null
+  );
+  const [clientError, setClientError] = useState<string>();
+  const [removeLogo, setRemoveLogo] = useState(false);
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current?.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
+  }, []);
+
+  function selectFile(file: File | undefined) {
+    if (!file) return;
+    if (!ACCEPTED_LOGO_TYPES.has(file.type)) {
+      setClientError("Logo must be PNG, JPEG, WebP, or GIF.");
+      return;
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      setClientError("Logo must be smaller than 5 MB.");
+      return;
+    }
+    if (previewUrlRef.current?.startsWith("blob:")) {
+      URL.revokeObjectURL(previewUrlRef.current);
+    }
+    const url =
+      typeof URL.createObjectURL === "function"
+        ? URL.createObjectURL(file)
+        : "";
+    previewUrlRef.current = url;
+    setPreview({ file, url });
+    setClientError(undefined);
+    setRemoveLogo(false);
+    onDirty();
+  }
+
+  function onInputChange(event: ChangeEvent<HTMLInputElement>) {
+    selectFile(event.target.files?.[0]);
+  }
+
+  function onDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    selectFile(event.dataTransfer.files[0]);
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      fileInputRef.current?.click();
+    }
+  }
+
+  const message = clientError ?? error;
+
+  return (
+    <Field data-invalid={Boolean(message)}>
+      <FieldLabel htmlFor="logo">Logo</FieldLabel>
+      <FieldDescription id="logo-description">
+        PNG, JPEG, WebP, or GIF. Maximum 5 MB.
+      </FieldDescription>
+      <input
+        ref={fileInputRef}
+        id="logo"
+        name="logo"
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        className="sr-only"
+        disabled={pending}
+        onChange={onInputChange}
+        aria-describedby="logo-description logo-error"
+      />
+      <div
+        role="button"
+        tabIndex={pending ? -1 : 0}
+        aria-label="Upload logo"
+        aria-disabled={pending}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyDown={onKeyDown}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={onDrop}
+        className="flex min-h-28 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-input bg-muted/30 px-4 py-5 text-center text-sm text-muted-foreground outline-none transition-colors hover:border-primary/60 hover:bg-muted/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 aria-disabled:pointer-events-none aria-disabled:opacity-50"
+      >
+        <ImagePlusIcon className="size-5 text-primary" aria-hidden="true" />
+        <span>Drop a logo here, or press Enter to browse</span>
+        <span className="text-xs">PNG, JPEG, WebP, GIF — max 5 MB</span>
+      </div>
+      {preview ? (
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview.url}
+            alt={`Preview of ${preview.file.name}`}
+            className="size-14 rounded-lg border border-border object-contain"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">
+              {preview.file.name}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {formatFileSize(preview.file.size)}
+            </p>
+          </div>
+        </div>
+      ) : hasLogo ? (
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/api/media/logo?v=${encodeURIComponent(updatedAt)}`}
+            alt={existingLogoAlt}
+            className="size-14 rounded-lg border border-border object-contain"
+          />
+          <p className="text-sm text-muted-foreground">Current event logo</p>
+        </div>
+      ) : null}
+      {preview ? (
+        <p className="text-sm text-muted-foreground">
+          Replacement selected. Current logo will be kept until you save.
+        </p>
+      ) : null}
+      {hasLogo ? (
+        <label className="flex min-h-11 items-center gap-3 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            name="removeLogo"
+            checked={removeLogo}
+            disabled={pending}
+            onChange={(event) => {
+              if (event.target.checked) setRemoveDialogOpen(true);
+              else {
+                setRemoveLogo(false);
+                onDirty();
+              }
+            }}
+          />
+          Remove current logo
+        </label>
+      ) : null}
+      <AlertDialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove current logo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The logo will be removed when you save these settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep logo</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                setRemoveLogo(true);
+                setRemoveDialogOpen(false);
+                onDirty();
+              }}
+            >
+              Mark for removal
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <FieldMessage id="logo-error" error={message} />
+    </Field>
+  );
+}
+
+function ExcludedNumbersEditor({
+  initialNumbers,
+  minRange,
+  maxRange,
+  serverError,
+  pending,
+  onDirty,
+}: {
+  initialNumbers: number[];
+  minRange: number;
+  maxRange: number;
+  serverError?: string;
+  pending: boolean;
+  onDirty: () => void;
+}) {
+  const [numbers, setNumbers] = useState(initialNumbers);
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string>();
+  const eligibleCount = Math.max(0, maxRange - minRange + 1 - numbers.length);
+
+  function addNumbers(raw: string) {
+    const tokens = raw.split(/[\n,]/).map((token) => token.trim());
+    if (tokens.every((token) => token === "")) return;
+    const next = [...numbers];
+    for (const token of tokens) {
+      if (!token) {
+        setError("Excluded numbers cannot contain an empty token.");
+        return;
+      }
+      if (!/^-?\d+$/.test(token)) {
+        setError(`Excluded number "${token}" must be a whole number.`);
+        return;
+      }
+      const value = Number(token);
+      if (!Number.isSafeInteger(value)) {
+        setError(`Excluded number "${token}" must be a whole number.`);
+        return;
+      }
+      if (value < minRange || value > maxRange) {
+        setError(
+          `Excluded number ${value} must be between ${minRange} and ${maxRange}.`
+        );
+        return;
+      }
+      if (next.includes(value)) {
+        setError(`Excluded number ${value} is a duplicate.`);
+        return;
+      }
+      next.push(value);
+    }
+    setNumbers(next);
+    setDraft("");
+    setError(undefined);
+    onDirty();
+  }
+
+  return (
+    <Field data-invalid={Boolean(error ?? serverError)}>
+      <FieldLabel htmlFor="excludedNumbers">Excluded numbers</FieldLabel>
+      <FieldDescription id="excluded-numbers-description">
+        Press Enter or paste comma- or line-separated numbers to remove them
+        from the draw.
+      </FieldDescription>
+      <input type="hidden" name="excludedNumbers" value={numbers.join(",")} />
+      <Input
+        id="excludedNumbers"
+        value={draft}
+        disabled={pending}
+        placeholder="13, 42, 99"
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            addNumbers(draft);
+          }
+        }}
+        onPaste={(event) => {
+          const pasted = event.clipboardData.getData("text");
+          if (/[\n,]/.test(pasted)) {
+            event.preventDefault();
+            addNumbers(pasted);
+          }
+        }}
+        aria-describedby="excluded-numbers-description excluded-numbers-error"
+        aria-invalid={Boolean(error ?? serverError)}
+        className="min-h-11"
+      />
+      {numbers.length ? (
+        <div
+          className="flex flex-wrap gap-2"
+          aria-label="Excluded numbers list"
+        >
+          {numbers.map((number) => (
+            <span
+              key={number}
+              className="inline-flex min-h-9 items-center gap-1 rounded-full bg-muted px-3 text-sm text-foreground"
+            >
+              {number}
+              <button
+                type="button"
+                aria-label={`Remove ${number}`}
+                disabled={pending}
+                onClick={() => {
+                  setNumbers((current) =>
+                    current.filter((value) => value !== number)
+                  );
+                  setError(undefined);
+                  onDirty();
+                }}
+                className="grid size-6 place-items-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <XIcon className="size-3.5" aria-hidden="true" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <p className="text-sm font-medium text-foreground">
+        {eligibleCount} eligible numbers
+      </p>
+      <FieldMessage id="excluded-numbers-error" error={error ?? serverError} />
+    </Field>
+  );
+}
+
+export function SettingsForm({ settings }: SettingsFormProps) {
   const [state, formAction, pending] = useActionState(
     updateEventSettings,
     initialState
   );
+  const [accentColor, setAccentColor] = useState(
+    settings?.accentColor ?? "#d076b4"
+  );
+  const [dirty, setDirty] = useState(false);
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
+  const contrast = useMemo(() => contrastRatio(accentColor), [accentColor]);
+  const fieldErrors = state.fieldErrors;
+
+  useEffect(() => {
+    if (state.success) {
+      toast.success("Settings saved.");
+    } else if (state.error) toast.error(state.error);
+    else if (state.fieldErrors) {
+      errorSummaryRef.current?.focus();
+      toast.error("Fix the highlighted settings before saving.");
+    }
+  }, [state]);
 
   return (
-    <form
-      action={formAction}
-      className="mt-6 space-y-5 rounded-2xl border border-border bg-card p-6 shadow-sm"
-    >
-      <label className="block text-sm font-medium text-muted-foreground">
-        Title
-        <Input
-          type="text"
-          name="title"
-          required
-          defaultValue={settings?.title ?? ""}
-          aria-invalid={Boolean(state.fieldErrors?.title)}
-          aria-describedby={
-            state.fieldErrors?.title ? "title-error" : undefined
-          }
-          className="mt-2"
-        />
-        {state.fieldErrors?.title ? (
-          <span
-            id="title-error"
-            role="alert"
-            className="mt-1 block text-xs text-destructive"
-          >
-            {state.fieldErrors.title}
-          </span>
-        ) : null}
-      </label>
-
-      <label className="block text-sm font-medium text-muted-foreground">
-        Description
-        <textarea
-          name="description"
-          defaultValue={settings?.description ?? ""}
-          className="mt-2 min-h-24 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
-        />
-      </label>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium text-muted-foreground">
-          Accent color
-          <input
-            type="color"
-            name="accentColor"
-            defaultValue={settings?.accentColor ?? "#d076b4"}
-            className="mt-2 block h-12 w-full cursor-pointer rounded-lg border border-input bg-background"
-          />
-          {state.fieldErrors?.accentColor ? (
-            <span role="alert" className="mt-1 block text-xs text-destructive">
-              {state.fieldErrors.accentColor}
-            </span>
-          ) : null}
-        </label>
-
-        <div className="block text-sm font-medium text-muted-foreground">
-          <span>Logo</span>
-          {settings?.hasLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={`/api/media/logo?v=${encodeURIComponent(settings.updatedAt)}`}
-              alt={settings.logoAlt}
-              className="mt-2 max-h-24 w-auto rounded-lg border border-border object-contain"
-            />
-          ) : (
-            <p className="mt-2 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-              No logo uploaded yet
-            </p>
-          )}
-          <input
-            type="file"
-            name="logo"
-            accept="image/*"
-            className="mt-2 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-primary-foreground"
-          />
-          {settings?.hasLogo ? (
-            <label className="mt-2 flex items-center gap-2 text-sm font-normal text-muted-foreground">
-              <input type="checkbox" name="removeLogo" />
-              Remove current logo
-            </label>
-          ) : null}
-          {state.fieldErrors?.logo ? (
-            <span role="alert" className="mt-1 block text-xs text-destructive">
-              {state.fieldErrors.logo}
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      <label className="block text-sm font-medium text-muted-foreground">
-        Logo alt text
-        <Input
-          type="text"
-          name="logoAlt"
-          defaultValue={settings?.logoAlt ?? ""}
-          className="mt-2"
-        />
-      </label>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium text-muted-foreground">
-          Min range
-          <Input
-            type="number"
-            name="minRange"
-            required
-            min={1}
-            max={9999}
-            step={1}
-            defaultValue={settings?.minRange ?? 1}
-            aria-invalid={Boolean(state.fieldErrors?.minRange)}
-            className="mt-2"
-          />
-          {state.fieldErrors?.minRange ? (
-            <span role="alert" className="mt-1 block text-xs text-destructive">
-              {state.fieldErrors.minRange}
-            </span>
-          ) : null}
-        </label>
-
-        <label className="block text-sm font-medium text-muted-foreground">
-          Max range
-          <Input
-            type="number"
-            name="maxRange"
-            required
-            min={2}
-            max={10000}
-            step={1}
-            defaultValue={settings?.maxRange ?? 1000}
-            aria-invalid={Boolean(state.fieldErrors?.maxRange)}
-            className="mt-2"
-          />
-          {state.fieldErrors?.maxRange ? (
-            <span role="alert" className="mt-1 block text-xs text-destructive">
-              {state.fieldErrors.maxRange}
-            </span>
-          ) : null}
-        </label>
-      </div>
-
-      <label className="block text-sm font-medium text-muted-foreground">
-        Excluded numbers (comma-separated)
-        <Input
-          type="text"
-          name="excludedNumbers"
-          defaultValue={settings?.excludedNumbers.join(", ") ?? ""}
-          placeholder="13, 42, 99"
-          aria-invalid={Boolean(state.fieldErrors?.excludedNumbers)}
-          aria-describedby={
-            state.fieldErrors?.excludedNumbers
-              ? "excluded-numbers-error"
-              : undefined
-          }
-          className="mt-2"
-        />
-        {state.fieldErrors?.excludedNumbers ? (
-          <span
-            id="excluded-numbers-error"
-            role="alert"
-            className="mt-1 block text-xs text-destructive"
-          >
-            {state.fieldErrors.excludedNumbers}
-          </span>
-        ) : null}
-      </label>
-
-      {state.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {state.error}
-        </p>
-      ) : null}
-      {state.success ? (
-        <p role="status" className="text-sm text-foreground">
-          Settings saved.
-        </p>
-      ) : null}
-
-      <Button
-        type="submit"
-        disabled={pending}
-        variant="default"
-        className="w-full"
+    <>
+      <form
+        action={formAction}
+        onChange={() => setDirty(true)}
+        className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm"
       >
-        {pending ? "Saving…" : "Save settings"}
-      </Button>
-    </form>
+        <fieldset disabled={pending} className="space-y-8">
+          {(state.error || fieldErrors) && (
+            <div
+              ref={errorSummaryRef}
+              tabIndex={-1}
+              role="alert"
+              className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
+            >
+              <p className="font-semibold">Review the highlighted fields.</p>
+              {state.error ? <p className="mt-1">{state.error}</p> : null}
+              {fieldErrors ? (
+                <ul className="mt-2 list-disc pl-5">
+                  {Object.entries(fieldErrors).map(([field, message]) => (
+                    <li key={field}>{message}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          )}
+          <FieldSet>
+            <legend className="text-base font-semibold text-foreground">
+              Event details
+            </legend>
+            <FieldGroup>
+              <Field data-invalid={Boolean(fieldErrors?.title)}>
+                <FieldLabel htmlFor="title">Title</FieldLabel>
+                <FieldDescription id="title-description">
+                  Displayed above the winner picker.
+                </FieldDescription>
+                <Input
+                  id="title"
+                  type="text"
+                  name="title"
+                  required
+                  defaultValue={settings?.title ?? ""}
+                  aria-invalid={Boolean(fieldErrors?.title)}
+                  aria-describedby="title-description title-error"
+                  className="min-h-11"
+                />
+                <FieldMessage id="title-error" error={fieldErrors?.title} />
+              </Field>
+              <Field data-invalid={Boolean(fieldErrors?.description)}>
+                <FieldLabel htmlFor="description">Description</FieldLabel>
+                <FieldDescription id="description-description">
+                  Short context for guests and event operators.
+                </FieldDescription>
+                <Textarea
+                  id="description"
+                  name="description"
+                  defaultValue={settings?.description ?? ""}
+                  aria-invalid={Boolean(fieldErrors?.description)}
+                  aria-describedby="description-description description-error"
+                  className="min-h-28"
+                />
+                <FieldMessage
+                  id="description-error"
+                  error={fieldErrors?.description}
+                />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <FieldSet>
+            <legend className="text-base font-semibold text-foreground">
+              Appearance
+            </legend>
+            <FieldGroup className="gap-6">
+              <Field data-invalid={Boolean(fieldErrors?.accentColor)}>
+                <FieldLabel htmlFor="accentColor">Accent color</FieldLabel>
+                <FieldDescription id="accent-color-description">
+                  Choose a preset or enter an exact six-digit hex value.
+                </FieldDescription>
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <Input
+                    id="accentColor"
+                    name="accentColor"
+                    value={accentColor}
+                    onChange={(event) => setAccentColor(event.target.value)}
+                    aria-invalid={Boolean(fieldErrors?.accentColor)}
+                    aria-describedby="accent-color-description accent-color-error"
+                    className="min-h-11 font-mono uppercase"
+                  />
+                  <input
+                    type="color"
+                    value={
+                      /^#[0-9a-f]{6}$/i.test(accentColor)
+                        ? accentColor
+                        : "#d076b4"
+                    }
+                    onChange={(event) => setAccentColor(event.target.value)}
+                    aria-label="Choose accent color"
+                    className="h-11 w-full cursor-pointer rounded-lg border border-input bg-background p-1 sm:w-16"
+                  />
+                </div>
+                <div
+                  className="flex flex-wrap gap-2"
+                  aria-label="Accent color presets"
+                >
+                  {COLOR_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      aria-label={`Use ${preset} accent color`}
+                      onClick={() => setAccentColor(preset)}
+                      className="size-11 rounded-full border-2 border-background shadow-sm ring-1 ring-border transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-ring"
+                      style={{ backgroundColor: preset }}
+                    />
+                  ))}
+                </div>
+                {contrast !== undefined && contrast < 4.5 ? (
+                  <p className="text-sm text-destructive">
+                    This color has limited contrast with both black and white
+                    text. Check button labels carefully.
+                  </p>
+                ) : null}
+                <FieldMessage
+                  id="accent-color-error"
+                  error={fieldErrors?.accentColor}
+                />
+              </Field>
+              <LogoDropzone
+                hasLogo={Boolean(settings?.hasLogo)}
+                existingLogoAlt={settings?.logoAlt ?? "Event logo"}
+                updatedAt={settings?.updatedAt ?? ""}
+                error={fieldErrors?.logo}
+                pending={pending}
+                onDirty={() => setDirty(true)}
+              />
+              <Field>
+                <FieldLabel htmlFor="logoAlt">Logo alt text</FieldLabel>
+                <FieldDescription id="logo-alt-description">
+                  Describe the logo for screen-reader users.
+                </FieldDescription>
+                <Input
+                  id="logoAlt"
+                  type="text"
+                  name="logoAlt"
+                  defaultValue={settings?.logoAlt ?? ""}
+                  aria-describedby="logo-alt-description"
+                  className="min-h-11"
+                />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <FieldSet>
+            <legend className="text-base font-semibold text-foreground">
+              Draw pool
+            </legend>
+            <FieldGroup>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field data-invalid={Boolean(fieldErrors?.minRange)}>
+                  <FieldLabel htmlFor="minRange">Min range</FieldLabel>
+                  <FieldDescription id="min-range-description">
+                    First eligible ticket number.
+                  </FieldDescription>
+                  <Input
+                    id="minRange"
+                    type="number"
+                    name="minRange"
+                    required
+                    min={1}
+                    max={9999}
+                    step={1}
+                    defaultValue={settings?.minRange ?? 1}
+                    aria-invalid={Boolean(fieldErrors?.minRange)}
+                    aria-describedby="min-range-description min-range-error"
+                    className="min-h-11"
+                  />
+                  <FieldMessage
+                    id="min-range-error"
+                    error={fieldErrors?.minRange}
+                  />
+                </Field>
+                <Field data-invalid={Boolean(fieldErrors?.maxRange)}>
+                  <FieldLabel htmlFor="maxRange">Max range</FieldLabel>
+                  <FieldDescription id="max-range-description">
+                    Last eligible ticket number.
+                  </FieldDescription>
+                  <Input
+                    id="maxRange"
+                    type="number"
+                    name="maxRange"
+                    required
+                    min={2}
+                    max={10000}
+                    step={1}
+                    defaultValue={settings?.maxRange ?? 1000}
+                    aria-invalid={Boolean(fieldErrors?.maxRange)}
+                    aria-describedby="max-range-description max-range-error"
+                    className="min-h-11"
+                  />
+                  <FieldMessage
+                    id="max-range-error"
+                    error={fieldErrors?.maxRange}
+                  />
+                </Field>
+              </div>
+              <ExcludedNumbersEditor
+                initialNumbers={settings?.excludedNumbers ?? []}
+                minRange={settings?.minRange ?? 1}
+                maxRange={settings?.maxRange ?? 1000}
+                serverError={fieldErrors?.excludedNumbers}
+                pending={pending}
+                onDirty={() => setDirty(true)}
+              />
+            </FieldGroup>
+          </FieldSet>
+          <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-muted-foreground" aria-live="polite">
+              {state.success || !dirty
+                ? "All changes saved"
+                : "Unsaved changes"}
+              {settings?.updatedAt
+                ? ` · Saved ${formatSavedAt(settings.updatedAt)}`
+                : null}
+            </div>
+            <Button
+              type="submit"
+              disabled={pending}
+              variant="default"
+              size="lg"
+            >
+              {pending ? "Saving…" : "Save settings"}
+            </Button>
+          </div>
+        </fieldset>
+      </form>
+      <Toaster richColors position="bottom-right" />
+    </>
   );
 }
