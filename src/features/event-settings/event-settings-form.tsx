@@ -26,7 +26,7 @@ export function SettingsForm(props: SettingsFormProps) {
           className="flex flex-col gap-8 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
         >
           <SettingsErrorSummary
-            error={form.state.error}
+            error={form.error}
             fieldErrors={form.fieldErrors}
             summaryRef={form.errorSummaryRef}
           />

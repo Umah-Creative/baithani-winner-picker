@@ -1,27 +1,8 @@
 import {
   ADMIN_AUDIT_ACTIONS,
-  sanitizeAuditMetadata,
-  type AdminAuditAction,
-  type AdminAuditMetadata,
-  type AdminAuditOutcome,
-} from "./audit-log.shared";
-
-const ADMIN_AUDIT_OUTCOMES: AdminAuditOutcome[] = [
-  "success",
-  "failure",
-  "denied",
-];
-const SETTINGS_FIELDS = [
-  "title",
-  "description",
-  "accentColor",
-  "hasLogo",
-  "logoMime",
-  "logoAlt",
-  "minRange",
-  "maxRange",
-  "excludedNumbers",
-] as const;
+  ADMIN_AUDIT_OUTCOMES,
+} from "./audit-log.constant";
+import type { AdminAuditAction, AdminAuditOutcome } from "./audit-log.type";
 
 type SearchParam = string | string[] | undefined;
 
@@ -35,12 +16,6 @@ export type AdminLogFilters = {
   page: number;
   limit: 50;
   offset: number;
-};
-
-export type AuditSettingsDiff = {
-  field: (typeof SETTINGS_FIELDS)[number];
-  before: unknown;
-  after: unknown;
 };
 
 function firstValue(value: SearchParam): string | undefined {
@@ -86,28 +61,6 @@ export function parseAdminLogFilters(
   };
 }
 
-function asMetadata(value: unknown): AdminAuditMetadata {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as AdminAuditMetadata)
-    : {};
-}
-
-export function formatAuditSettingsDiff(
-  metadata: AdminAuditMetadata
-): AuditSettingsDiff[] {
-  const sanitized = sanitizeAuditMetadata(metadata);
-  const before = asMetadata(sanitized.before);
-  const after = asMetadata(sanitized.after);
-
-  return SETTINGS_FIELDS.flatMap((field) => {
-    const previous = before[field];
-    const next = after[field];
-    return JSON.stringify(previous) === JSON.stringify(next)
-      ? []
-      : [{ field, before: previous, after: next }];
-  });
-}
-
 export function clampAdminLogPage(
   filters: AdminLogFilters,
   total: number
@@ -128,5 +81,3 @@ export function serializeAdminLogFilters(filters: AdminLogFilters): string {
   if (filters.page > 1) params.set("page", String(filters.page));
   return params.toString();
 }
-
-export { ADMIN_AUDIT_OUTCOMES };

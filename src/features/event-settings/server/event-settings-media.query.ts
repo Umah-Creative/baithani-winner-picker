@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { eventSettings } from "@/db/schema";
 
+import { ACTIVE_EVENT_SETTINGS_ID } from "../event-settings.constant";
+
 export type EventShareCardMedia = {
   title: string;
   description: string;
@@ -32,7 +34,7 @@ export const getEventShareCardMedia = cache(
         logoMime: eventSettings.logoMime,
       })
       .from(eventSettings)
-      .where(eq(eventSettings.id, 1))
+      .where(eq(eventSettings.id, ACTIVE_EVENT_SETTINGS_ID))
       .limit(1);
 
     if (!row) return null;
@@ -55,7 +57,7 @@ export async function getEventLogoMedia(): Promise<EventLogoMedia | null> {
       logoMime: eventSettings.logoMime,
     })
     .from(eventSettings)
-    .where(eq(eventSettings.id, 1))
+    .where(eq(eventSettings.id, ACTIVE_EVENT_SETTINGS_ID))
     .limit(1);
 
   if (!row?.logoBytes) return null;

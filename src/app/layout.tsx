@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { buildEventMetadata } from "@/features/event-sharing/event-metadata";
+import { DEFAULT_ACCENT_COLOR } from "@/features/event-settings/event-settings.constant";
 import { getEventSettings } from "@/features/event-settings/server/event-settings.query";
 import { resolveSiteUrl } from "@/shared/site-url/resolve-site-url.server";
 import { cn } from "@/lib/utils";
@@ -65,7 +66,7 @@ export default async function RootLayout(
       )}
       style={
         {
-          "--brand": settings?.accentColor ?? "#d076b4",
+          "--brand": settings?.accentColor ?? DEFAULT_ACCENT_COLOR,
         } as React.CSSProperties
       }
     >

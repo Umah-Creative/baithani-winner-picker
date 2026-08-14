@@ -10,10 +10,8 @@ import {
   parseAdminLogFilters,
   type AdminLogFilters,
 } from "../audit-log-filter";
-import {
-  sanitizeAuditMetadata,
-  type AdminAuditMetadata,
-} from "../audit-log.shared";
+import { sanitizeAuditMetadata } from "../audit-log-sanitizer";
+import type { AdminAuditMetadata } from "../audit-log.type";
 
 export type AdminAuditLogRow = {
   id: number;

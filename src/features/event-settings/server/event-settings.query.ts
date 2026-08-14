@@ -7,28 +7,21 @@ import { db } from "@/db/client";
 import { eventSettings } from "@/db/schema";
 import type { EventSettingsView } from "@/features/event-settings/event-settings.type";
 
+import { ACTIVE_EVENT_SETTINGS_ID } from "../event-settings.constant";
+import { toEventSettingsView } from "./event-settings-projection";
+
 export const getEventSettings = cache(
   async (): Promise<EventSettingsView | null> => {
     const [row] = await db
       .select()
       .from(eventSettings)
-      .where(eq(eventSettings.id, 1))
+      .where(eq(eventSettings.id, ACTIVE_EVENT_SETTINGS_ID))
       .limit(1);
 
     if (!row) {
       return null;
     }
 
-    return {
-      title: row.title,
-      description: row.description,
-      accentColor: row.accentColor,
-      hasLogo: Boolean(row.logoBytes),
-      logoAlt: row.logoAlt ?? row.title,
-      minRange: row.minRange,
-      maxRange: row.maxRange,
-      excludedNumbers: row.excludedNumbers,
-      updatedAt: row.updatedAt.toISOString(),
-    };
+    return toEventSettingsView(row);
   }
 );

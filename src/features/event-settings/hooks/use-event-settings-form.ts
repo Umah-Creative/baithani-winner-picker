@@ -8,10 +8,9 @@ import { DEFAULT_ACCENT_COLOR } from "../event-settings.constant";
 import { updateEventSettings } from "../event-settings.action";
 import type { EventSettingsActionState } from "../event-settings-action.type";
 import type { EventSettingsView } from "../event-settings.type";
-import { parseExcludedNumbers } from "../event-settings.validation";
 import type { SettingsShareState } from "../components/settings-preview";
 
-const initialState: EventSettingsActionState = {};
+const initialState: EventSettingsActionState = { status: "idle" };
 
 function formatSavedAt(value: string): string {
   return new Intl.DateTimeFormat("en", {
@@ -59,30 +58,19 @@ export function useEventSettingsForm(settings: EventSettingsView | null) {
   const [state, formAction, pending] = useActionState(
     async (previousState: EventSettingsActionState, formData: FormData) => {
       const nextState = await updateEventSettings(previousState, formData);
-      if (nextState.success) {
-        const submittedLogo = formData.get("logo");
-        const hasReplacement =
-          submittedLogo instanceof File && submittedLogo.size > 0;
-        const removeLogo = formData.get("removeLogo") === "on";
-        const nextHasLogo = hasReplacement
-          ? true
-          : removeLogo
-            ? false
-            : savedLogo.hasLogo;
-        const nextSavedAt = new Date().toISOString();
-        const parsedExcludedNumbers = parseExcludedNumbers(
-          String(formData.get("excludedNumbers") ?? ""),
-          Number(formData.get("minRange")),
-          Number(formData.get("maxRange"))
-        );
-
-        if (parsedExcludedNumbers.ok) {
-          setExcludedNumbers(parsedExcludedNumbers.values);
-        }
-        setSavedLogo({ hasLogo: nextHasLogo, updatedAt: nextSavedAt });
-        setLogoVisible(nextHasLogo);
+      if (nextState.status === "success") {
+        const saved = nextState.settings;
+        setTitle(saved.title);
+        setDescription(saved.description);
+        setAccentColor(saved.accentColor);
+        setLogoAlt(saved.logoAlt);
+        setMinRangeValue(String(saved.minRange));
+        setMaxRangeValue(String(saved.maxRange));
+        setExcludedNumbers(saved.excludedNumbers);
+        setSavedLogo({ hasLogo: saved.hasLogo, updatedAt: saved.updatedAt });
+        setLogoVisible(saved.hasLogo);
         setReplacementLogoUrl(undefined);
-        setSavedAt(nextSavedAt);
+        setSavedAt(saved.updatedAt);
         setLogoRevision((value) => value + 1);
         setExcludedRevision((value) => value + 1);
         setDirty(false);
@@ -93,11 +81,11 @@ export function useEventSettingsForm(settings: EventSettingsView | null) {
   );
 
   useEffect(() => {
-    if (state.success) {
+    if (state.status === "success") {
       toast.success("Settings saved.");
-    } else if (state.error) {
+    } else if (state.status === "error" && state.error) {
       toast.error(state.error);
-    } else if (state.fieldErrors) {
+    } else if (state.status === "error" && state.fieldErrors) {
       errorSummaryRef.current?.focus();
       toast.error("Fix the highlighted settings before saving.");
     }
@@ -116,7 +104,8 @@ export function useEventSettingsForm(settings: EventSettingsView | null) {
 
   return {
     state,
-    fieldErrors: state.fieldErrors,
+    error: state.status === "error" ? state.error : undefined,
+    fieldErrors: state.status === "error" ? state.fieldErrors : undefined,
     formAction,
     pending,
     errorSummaryRef,

@@ -1,3 +1,2 @@
-export type LoginActionState = {
-  error?: string;
-};
+export type LoginActionState =
+  { status: "idle" } | { status: "error"; error: string };

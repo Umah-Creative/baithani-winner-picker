@@ -9,6 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 import type { EventSettingsFieldError } from "../event-settings.type";
+import { MAX_EVENT_RANGE, MIN_EVENT_RANGE } from "../event-settings.constant";
 import { ExcludedNumbersEditor } from "./excluded-numbers-editor";
 import { FieldMessage } from "./field-message";
 
@@ -58,8 +59,8 @@ export function DrawPoolFields(props: DrawPoolFieldsProps) {
               type="number"
               name="minRange"
               required
-              min={1}
-              max={9999}
+              min={MIN_EVENT_RANGE}
+              max={MAX_EVENT_RANGE - 1}
               step={1}
               value={minRangeValue}
               onChange={(event) => onMinRangeChange(event.target.value)}
@@ -79,8 +80,8 @@ export function DrawPoolFields(props: DrawPoolFieldsProps) {
               type="number"
               name="maxRange"
               required
-              min={2}
-              max={10000}
+              min={MIN_EVENT_RANGE + 1}
+              max={MAX_EVENT_RANGE}
               step={1}
               value={maxRangeValue}
               onChange={(event) => onMaxRangeChange(event.target.value)}

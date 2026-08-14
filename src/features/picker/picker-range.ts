@@ -1,4 +1,7 @@
-import { MAX_PICKER_RANGE, MIN_PICKER_RANGE } from "./picker.constant";
+import {
+  MAX_EVENT_RANGE,
+  MIN_EVENT_RANGE,
+} from "@/features/event-settings/event-settings.constant";
 
 export function getRangeError(
   minValue: string,
@@ -15,8 +18,8 @@ export function getRangeError(
     return "Range values must be whole numbers.";
   }
 
-  if (min < MIN_PICKER_RANGE || max > MAX_PICKER_RANGE) {
-    return `Use numbers from ${MIN_PICKER_RANGE.toLocaleString()} to ${MAX_PICKER_RANGE.toLocaleString()}.`;
+  if (min < MIN_EVENT_RANGE || max > MAX_EVENT_RANGE) {
+    return `Use numbers from ${MIN_EVENT_RANGE.toLocaleString()} to ${MAX_EVENT_RANGE.toLocaleString()}.`;
   }
 
   if (min >= max) return "Minimum must be lower than maximum.";

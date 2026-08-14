@@ -15,6 +15,7 @@ import {
   sanitizeNumberListInput,
   useExcludedNumbersEditor,
 } from "../hooks/use-excluded-numbers-editor";
+import { MAX_EVENT_RANGE, MIN_EVENT_RANGE } from "../event-settings.constant";
 
 type ExcludedNumbersEditorProps = {
   minRange: number;
@@ -61,8 +62,8 @@ export function ExcludedNumbersEditor(props: ExcludedNumbersEditorProps) {
           id="excludedNumber"
           type="number"
           inputMode="numeric"
-          min={editor.rangeIsValid ? minRange : 1}
-          max={editor.rangeIsValid ? maxRange : 10_000}
+          min={editor.rangeIsValid ? minRange : MIN_EVENT_RANGE}
+          max={editor.rangeIsValid ? maxRange : MAX_EVENT_RANGE}
           step={1}
           value={editor.draft}
           disabled={pending}

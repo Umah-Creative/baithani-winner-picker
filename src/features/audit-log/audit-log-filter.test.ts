@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  clampAdminLogPage,
-  formatAuditSettingsDiff,
-  parseAdminLogFilters,
-} from "./audit-log-filter";
+import { clampAdminLogPage, parseAdminLogFilters } from "./audit-log-filter";
 
 describe("parseAdminLogFilters", () => {
   it("normalizes log filters and keeps 50 rows per page", () => {
@@ -54,29 +50,5 @@ describe("parseAdminLogFilters", () => {
       page: 2,
       offset: 50,
     });
-  });
-});
-
-describe("formatAuditSettingsDiff", () => {
-  it("shows only changed, sanitized settings fields", () => {
-    expect(
-      formatAuditSettingsDiff({
-        before: {
-          title: "Old draw",
-          accentColor: "#d076b4",
-          excludedNumbers: [13],
-          password: "never show this",
-        },
-        after: {
-          title: "New draw",
-          accentColor: "#d076b4",
-          excludedNumbers: [13, 42],
-          token: "nope",
-        },
-      })
-    ).toEqual([
-      { field: "title", before: "Old draw", after: "New draw" },
-      { field: "excludedNumbers", before: [13], after: [13, 42] },
-    ]);
   });
 });

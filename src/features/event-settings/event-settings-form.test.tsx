@@ -35,7 +35,7 @@ const settings = {
 
 beforeEach(() => {
   mocks.updateEventSettings.mockReset();
-  mocks.updateEventSettings.mockResolvedValue({});
+  mocks.updateEventSettings.mockResolvedValue({ status: "idle" });
 });
 
 afterEach(() => {
@@ -160,7 +160,10 @@ describe("SettingsForm logo controls", () => {
   });
 
   it("resets replacement state and the native input after save", async () => {
-    mocks.updateEventSettings.mockResolvedValue({ success: true });
+    mocks.updateEventSettings.mockResolvedValue({
+      status: "success",
+      settings,
+    });
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 
@@ -272,7 +275,10 @@ describe("SettingsForm excluded-number editor", () => {
   });
 
   it("submits a valid unfinished draft instead of silently dropping it", async () => {
-    mocks.updateEventSettings.mockResolvedValue({ success: true });
+    mocks.updateEventSettings.mockResolvedValue({
+      status: "success",
+      settings: { ...settings, excludedNumbers: [4, 11] },
+    });
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 

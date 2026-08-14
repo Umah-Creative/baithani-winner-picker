@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { AdminAuditRequestMetadata } from "@/features/audit-log/audit-log.shared";
+import type { AdminAuditRequestMetadata } from "@/features/audit-log/audit-log.type";
 
 const LOGIN_FAILURE_WINDOW_MS = 10 * 60 * 1000;
 const MAX_LOGIN_FAILURES = 5;

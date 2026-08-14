@@ -1,29 +1,24 @@
 import "server-only";
 
-import { headers } from "next/headers";
-
 import { db } from "@/db/client";
 import { adminAuditLogs } from "@/db/schema";
 
-import {
-  buildAdminAuditEvent,
-  getAdminAuditRequestMetadata,
-  type AdminAuditWriteInput,
-} from "../audit-log.shared";
-
-export * from "../audit-log.shared";
+import { buildAdminAuditEvent } from "../audit-log-event";
+import type { AdminAuditWriteInput } from "../audit-log.type";
+import { getCurrentAdminAuditRequestMetadata } from "./audit-request";
 
 export async function writeAdminAuditLog(
   input: AdminAuditWriteInput
 ): Promise<void> {
   try {
-    const requestHeaders = await headers();
-    const event = buildAdminAuditEvent(
-      input,
-      getAdminAuditRequestMetadata(requestHeaders)
-    );
-    await db.insert(adminAuditLogs).values(event);
+    const request = await getCurrentAdminAuditRequestMetadata();
+    await db
+      .insert(adminAuditLogs)
+      .values(buildAdminAuditEvent(input, request));
   } catch {
-    // Audit persistence is deliberately best-effort.
+    console.error("Admin audit persistence failed.", {
+      action: input.action,
+      outcome: input.outcome,
+    });
   }
 }

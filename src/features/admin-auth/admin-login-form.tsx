@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { loginAdmin } from "./admin-auth.action";
 import type { LoginActionState } from "./admin-auth.type";
 
-const initialState: LoginActionState = {};
+const initialState: LoginActionState = { status: "idle" };
 
 export function LoginForm({ identity }: { identity: string }) {
   const [state, formAction, pending] = useActionState(loginAdmin, initialState);
@@ -36,8 +36,10 @@ export function LoginForm({ identity }: { identity: string }) {
             required
             autoFocus
             autoComplete="current-password"
-            aria-invalid={Boolean(state.error)}
-            aria-describedby={state.error ? "login-error" : undefined}
+            aria-invalid={state.status === "error"}
+            aria-describedby={
+              state.status === "error" ? "login-error" : undefined
+            }
             className="pr-12"
           />
           <Button
@@ -52,7 +54,7 @@ export function LoginForm({ identity }: { identity: string }) {
           </Button>
         </span>
       </label>
-      {state.error ? (
+      {state.status === "error" ? (
         <p
           id="login-error"
           role="alert"

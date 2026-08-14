@@ -6,6 +6,7 @@ import {
   DEFAULT_EVENT_TITLE,
 } from "@/features/event-sharing/event-metadata";
 import { getEventShareCardMedia } from "@/features/event-settings/server/event-settings-media.query";
+import { DEFAULT_ACCENT_COLOR } from "@/features/event-settings/event-settings.constant";
 
 export const alt = "Baithani event shared-link preview";
 export const size = { width: 1200, height: 630 };
@@ -13,13 +14,11 @@ export const contentType = "image/png";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEFAULT_ACCENT = "#d076b4";
-
 export default async function OpenGraphImage() {
   const settings = await getEventShareCardMedia();
   const title = settings?.title ?? DEFAULT_EVENT_TITLE;
   const description = settings?.description ?? DEFAULT_EVENT_DESCRIPTION;
-  const accentColor = settings?.accentColor ?? DEFAULT_ACCENT;
+  const accentColor = settings?.accentColor ?? DEFAULT_ACCENT_COLOR;
   const palette = createBrandPalette(accentColor);
   const logoBytes = settings?.logoBytes
     ? new Uint8Array(settings.logoBytes).buffer

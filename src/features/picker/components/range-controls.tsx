@@ -1,6 +1,10 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import {
+  MAX_EVENT_RANGE,
+  MIN_EVENT_RANGE,
+} from "@/features/event-settings/event-settings.constant";
 
 type RangeControlsProps = {
   min: string;
@@ -25,7 +29,7 @@ export function RangeControls(props: RangeControlsProps) {
             variant="range"
             type="number"
             inputMode="numeric"
-            min={1}
+            min={MIN_EVENT_RANGE}
             max={9999}
             step={1}
             value={min}
@@ -47,7 +51,7 @@ export function RangeControls(props: RangeControlsProps) {
             type="number"
             inputMode="numeric"
             min={2}
-            max={10000}
+            max={MAX_EVENT_RANGE}
             step={1}
             value={max}
             disabled={disabled}

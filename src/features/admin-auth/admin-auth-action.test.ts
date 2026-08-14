@@ -41,7 +41,9 @@ describe("loginAdmin audit entries", () => {
     const formData = new FormData();
     formData.set("password", "correct-password");
 
-    await expect(loginAdmin({}, formData)).rejects.toThrow("redirected");
+    await expect(loginAdmin({ status: "idle" }, formData)).rejects.toThrow(
+      "redirected"
+    );
 
     expect(mocks.writeAdminAuditLog).toHaveBeenCalledWith({
       action: "auth.login",
@@ -62,7 +64,8 @@ describe("loginAdmin audit entries", () => {
     const formData = new FormData();
     formData.set("password", "wrong-password");
 
-    await expect(loginAdmin({}, formData)).resolves.toEqual({
+    await expect(loginAdmin({ status: "idle" }, formData)).resolves.toEqual({
+      status: "error",
       error: "Invalid password.",
     });
 
@@ -86,12 +89,18 @@ describe("loginAdmin audit entries", () => {
     wrongPassword.set("password", "wrong-password");
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      await expect(loginAdmin({}, wrongPassword)).resolves.toEqual({
+      await expect(
+        loginAdmin({ status: "idle" }, wrongPassword)
+      ).resolves.toEqual({
+        status: "error",
         error: "Invalid password.",
       });
     }
 
-    await expect(loginAdmin({}, wrongPassword)).resolves.toEqual({
+    await expect(
+      loginAdmin({ status: "idle" }, wrongPassword)
+    ).resolves.toEqual({
+      status: "error",
       error: "Invalid password.",
     });
 
@@ -110,11 +119,13 @@ describe("loginAdmin audit entries", () => {
     const wrongPassword = new FormData();
     wrongPassword.set("password", "wrong-password");
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      await loginAdmin({}, wrongPassword);
+      await loginAdmin({ status: "idle" }, wrongPassword);
     }
 
     const correctPassword = new FormData();
     correctPassword.set("password", "correct-password");
-    await expect(loginAdmin({}, correctPassword)).rejects.toThrow("redirected");
+    await expect(
+      loginAdmin({ status: "idle" }, correctPassword)
+    ).rejects.toThrow("redirected");
   });
 });

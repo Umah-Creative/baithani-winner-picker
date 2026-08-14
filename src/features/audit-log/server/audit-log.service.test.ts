@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildAdminAuditEvent,
-  getAdminAuditRequestMetadata,
-  resolveLogoChange,
-  sanitizeAuditMetadata,
-} from "../audit-log.shared";
+import { buildAdminAuditEvent } from "../audit-log-event";
+import { sanitizeAuditMetadata } from "../audit-log-sanitizer";
+import { resolveLogoChange } from "@/features/event-settings/server/event-settings-audit";
+
+import { getAdminAuditRequestMetadata } from "./audit-request";
 
 describe("sanitizeAuditMetadata", () => {
   it("redacts credentials and drops unsafe request and logo fields", () => {

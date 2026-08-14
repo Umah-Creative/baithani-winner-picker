@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { MAX_EVENT_RANGE, MIN_EVENT_RANGE } from "../event-settings.constant";
+
 import { PreviewLogo } from "./preview-logo";
 
 type PickerPreviewProps = {
@@ -27,8 +29,8 @@ export function PickerPreview(props: PickerPreviewProps) {
   const rangeIsValid =
     Number.isSafeInteger(minRange) &&
     Number.isSafeInteger(maxRange) &&
-    minRange >= 1 &&
-    maxRange <= 10_000 &&
+    minRange >= MIN_EVENT_RANGE &&
+    maxRange <= MAX_EVENT_RANGE &&
     minRange < maxRange;
   const excludedCount = rangeIsValid
     ? excludedNumbers.filter(

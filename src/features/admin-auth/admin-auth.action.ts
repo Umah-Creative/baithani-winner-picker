@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { writeAdminAuditLog } from "@/features/audit-log/server/audit-log.service";
-import { getAdminAuditRequestMetadata } from "@/features/audit-log/audit-log.shared";
+import { getAdminAuditRequestMetadata } from "@/features/audit-log/server/audit-request";
 import {
   clearAdminSession,
   createAdminSession,
@@ -36,7 +36,7 @@ export async function loginAdmin(
 
   if (!expected || password !== expected) {
     if (consumeLoginFailure(rateLimitKey)) {
-      return { error: "Invalid password." };
+      return { status: "error", error: "Invalid password." };
     }
     await writeAdminAuditLog({
       action: "auth.login",
@@ -44,7 +44,7 @@ export async function loginAdmin(
       actor: "admin",
       metadata: { reason: "invalid_credentials" },
     });
-    return { error: "Invalid password." };
+    return { status: "error", error: "Invalid password." };
   }
 
   clearLoginFailures(rateLimitKey);

@@ -1,4 +1,4 @@
-import type { AdminAuditAction, AdminAuditOutcome } from "./audit-log.shared";
+import type { AdminAuditAction, AdminAuditOutcome } from "./audit-log.type";
 
 const ACTION_LABELS: Record<AdminAuditAction, string> = {
   "auth.login": "Admin signed in",

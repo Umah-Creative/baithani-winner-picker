@@ -1,4 +1,4 @@
-import { formatAuditSettingsDiff } from "../audit-log-filter";
+import { formatAuditSettingsDiff } from "../audit-log-settings-diff";
 import { AUDIT_FIELD_LABELS, formatAuditValue } from "../audit-log-value";
 
 type AuditLogDetailsProps = {

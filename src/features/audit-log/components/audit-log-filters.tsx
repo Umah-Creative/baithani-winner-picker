@@ -24,10 +24,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  ADMIN_AUDIT_ACTIONS,
   ADMIN_AUDIT_OUTCOMES,
-  type AdminLogFilters,
-} from "@/features/audit-log/audit-log-filter";
-import { ADMIN_AUDIT_ACTIONS } from "@/features/audit-log/audit-log.shared";
+} from "@/features/audit-log/audit-log.constant";
+import type { AdminLogFilters } from "@/features/audit-log/audit-log-filter";
 import { cn } from "@/lib/utils";
 
 import { formatAuditAction, formatAuditOutcome } from "../audit-log-labels";
