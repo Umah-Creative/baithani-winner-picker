@@ -2,26 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { logoutAdmin } from "@/lib/actions";
 import { isAdminAuthenticated } from "@/lib/auth.service";
-import { getEventSettings } from "@/lib/event-settings.service";
+import { getAdminAuditLogPage } from "@/lib/admin-logs.service";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 
-import { SettingsForm } from "./SettingsForm";
+import { LogsTable } from "./LogsTable";
 
-export const metadata: Metadata = {
-  title: "Admin",
-};
-
+export const metadata: Metadata = { title: "Admin audit logs" };
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+export default async function AdminLogsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   if (!(await isAdminAuthenticated())) {
     redirect("/admin/login");
   }
 
-  const settings = await getEventSettings();
+  const page = await getAdminAuditLogPage(await searchParams);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-10">
@@ -31,30 +31,22 @@ export default async function AdminPage() {
             Admin control center
           </p>
           <h1 className="mt-1 text-2xl font-semibold text-foreground">
-            Event settings
+            Audit logs
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" render={<Link href="/admin" />}>
+            Settings
+          </Button>
           <Button variant="outline" size="sm" render={<Link href="/" />}>
             Open picker
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            render={<Link href="/admin/logs" />}
-          >
-            Logs
-          </Button>
           <ThemeToggle />
-          <form action={logoutAdmin}>
-            <Button type="submit" variant="outline" size="sm">
-              Log out
-            </Button>
-          </form>
         </div>
       </header>
-
-      <SettingsForm settings={settings} />
+      <section className="mt-6">
+        <LogsTable page={page} />
+      </section>
     </main>
   );
 }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -65,6 +65,11 @@ describe("SettingsForm logo controls", () => {
         "Blank alt text is only appropriate when this logo is decorative."
       )
     ).toBeTruthy();
+    expect(
+      document
+        .querySelector("aside[aria-label='Live preview'] img")
+        ?.getAttribute("alt")
+    ).toBe("");
   });
 });
 
@@ -162,5 +167,25 @@ describe("SettingsForm logo replacement precedence", () => {
         "Replacement selected. Current logo will be kept until you save."
       )
     ).toBeTruthy();
+  });
+});
+
+describe("SettingsForm live preview", () => {
+  it("updates the compact draft preview from edited event details", async () => {
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    await user.clear(screen.getByLabelText("Title"));
+    await user.type(screen.getByLabelText("Title"), "Friday draw");
+    await user.clear(screen.getByLabelText("Description"));
+    await user.type(screen.getByLabelText("Description"), "Doors at six");
+
+    const preview = screen.getByLabelText("Live preview");
+    expect(
+      within(preview).getByRole("heading", { name: "Live preview" })
+    ).toBeTruthy();
+    expect(within(preview).getByText("Friday draw")).toBeTruthy();
+    expect(within(preview).getByText("Doors at six")).toBeTruthy();
+    expect(within(preview).getByText("1–100 · 1 excluded")).toBeTruthy();
   });
 });

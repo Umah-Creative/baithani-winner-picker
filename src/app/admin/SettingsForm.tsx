@@ -11,7 +11,7 @@ import {
   useState,
 } from "react";
 import { ImagePlusIcon, XIcon } from "lucide-react";
-import { toast, Toaster } from "sonner";
+import { toast } from "sonner";
 
 import { updateEventSettings, type ActionState } from "@/lib/actions";
 import { createBrandPalette } from "@/lib/brand-color";
@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+
+import { SettingsPreview } from "./SettingsPreview";
 
 const initialState: ActionState = {};
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
@@ -95,6 +97,8 @@ function LogoDropzone({
   error,
   pending,
   onDirty,
+  onPreviewChange,
+  onRemoveChange,
 }: {
   hasLogo: boolean;
   existingLogoAlt: string;
@@ -102,6 +106,8 @@ function LogoDropzone({
   error?: string;
   pending: boolean;
   onDirty: () => void;
+  onPreviewChange: (url: string | undefined) => void;
+  onRemoveChange: (remove: boolean) => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewUrlRef = useRef<string | null>(null);
@@ -126,6 +132,7 @@ function LogoDropzone({
     }
     previewUrlRef.current = null;
     setPreview(null);
+    onPreviewChange(undefined);
   }
 
   function rejectFile(message: string) {
@@ -151,8 +158,10 @@ function LogoDropzone({
         : "";
     previewUrlRef.current = url;
     setPreview({ file, url });
+    onPreviewChange(url || undefined);
     setClientError(undefined);
     setRemoveLogo(false);
+    onRemoveChange(false);
     onDirty();
   }
 
@@ -250,6 +259,7 @@ function LogoDropzone({
               if (event.target.checked) setRemoveDialogOpen(true);
               else {
                 setRemoveLogo(false);
+                onRemoveChange(false);
                 onDirty();
               }
             }}
@@ -271,6 +281,7 @@ function LogoDropzone({
               variant="destructive"
               onClick={() => {
                 setRemoveLogo(true);
+                onRemoveChange(true);
                 setRemoveDialogOpen(false);
                 onDirty();
               }}
@@ -286,21 +297,22 @@ function LogoDropzone({
 }
 
 function ExcludedNumbersEditor({
-  initialNumbers,
   minRange,
   maxRange,
   serverError,
   pending,
   onDirty,
+  numbers,
+  onNumbersChange,
 }: {
-  initialNumbers: number[];
   minRange: number;
   maxRange: number;
   serverError?: string;
   pending: boolean;
   onDirty: () => void;
+  numbers: number[];
+  onNumbersChange: (numbers: number[]) => void;
 }) {
-  const [numbers, setNumbers] = useState(initialNumbers);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string>();
   const rangeIsValid =
@@ -359,7 +371,7 @@ function ExcludedNumbersEditor({
       }
       next.push(value);
     }
-    setNumbers(next);
+    onNumbersChange(next);
     setDraft("");
     setError(undefined);
     onDirty();
@@ -412,9 +424,7 @@ function ExcludedNumbersEditor({
                 aria-label={`Remove ${number}`}
                 disabled={pending}
                 onClick={() => {
-                  setNumbers((current) =>
-                    current.filter((value) => value !== number)
-                  );
+                  onNumbersChange(numbers.filter((value) => value !== number));
                   setError(undefined);
                   onDirty();
                 }}
@@ -435,13 +445,11 @@ function ExcludedNumbersEditor({
 }
 
 export function SettingsForm({ settings }: SettingsFormProps) {
-  const [state, formAction, pending] = useActionState(
-    updateEventSettings,
-    initialState
-  );
   const [accentColor, setAccentColor] = useState(
     settings?.accentColor ?? "#d076b4"
   );
+  const [title, setTitle] = useState(settings?.title ?? "");
+  const [description, setDescription] = useState(settings?.description ?? "");
   const [logoAlt, setLogoAlt] = useState(settings?.logoAlt ?? "");
   const [minRangeValue, setMinRangeValue] = useState(
     String(settings?.minRange ?? 1)
@@ -449,15 +457,35 @@ export function SettingsForm({ settings }: SettingsFormProps) {
   const [maxRangeValue, setMaxRangeValue] = useState(
     String(settings?.maxRange ?? 1000)
   );
+  const [excludedNumbers, setExcludedNumbers] = useState(
+    settings?.excludedNumbers ?? []
+  );
+  const [replacementLogoUrl, setReplacementLogoUrl] = useState<string>();
+  const [logoMarkedForRemoval, setLogoMarkedForRemoval] = useState(false);
   const [dirty, setDirty] = useState(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const contrast = useMemo(
     () => activeForegroundContrast(accentColor),
     [accentColor]
   );
-  const fieldErrors = state.fieldErrors;
   const minRange = Number(minRangeValue);
   const maxRange = Number(maxRangeValue);
+  const currentLogoUrl = settings?.hasLogo
+    ? `/api/media/logo?v=${encodeURIComponent(settings.updatedAt)}`
+    : undefined;
+  const [state, formAction, pending] = useActionState(
+    async (previousState: ActionState, formData: FormData) => {
+      const nextState = await updateEventSettings(previousState, formData);
+      if (nextState.success) {
+        setReplacementLogoUrl(undefined);
+        setLogoMarkedForRemoval(false);
+        setDirty(false);
+      }
+      return nextState;
+    },
+    initialState
+  );
+  const fieldErrors = state.fieldErrors;
 
   useEffect(() => {
     if (state.success) {
@@ -474,244 +502,272 @@ export function SettingsForm({ settings }: SettingsFormProps) {
       <form
         action={formAction}
         onChange={() => setDirty(true)}
-        className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm"
+        className="mt-6"
       >
-        <fieldset disabled={pending} className="space-y-8">
-          {(state.error || fieldErrors) && (
-            <div
-              ref={errorSummaryRef}
-              tabIndex={-1}
-              role="alert"
-              className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
-            >
-              <p className="font-semibold">Review the highlighted fields.</p>
-              {state.error ? <p className="mt-1">{state.error}</p> : null}
-              {fieldErrors ? (
-                <ul className="mt-2 list-disc pl-5">
-                  {Object.entries(fieldErrors).map(([field, message]) => (
-                    <li key={field}>{message}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          )}
-          <FieldSet>
-            <legend className="text-base font-semibold text-foreground">
-              Event details
-            </legend>
-            <FieldGroup>
-              <Field data-invalid={Boolean(fieldErrors?.title)}>
-                <FieldLabel htmlFor="title">Title</FieldLabel>
-                <FieldDescription id="title-description">
-                  Displayed above the winner picker.
-                </FieldDescription>
-                <Input
-                  id="title"
-                  type="text"
-                  name="title"
-                  required
-                  defaultValue={settings?.title ?? ""}
-                  aria-invalid={Boolean(fieldErrors?.title)}
-                  aria-describedby="title-description title-error"
-                  className="min-h-11"
-                />
-                <FieldMessage id="title-error" error={fieldErrors?.title} />
-              </Field>
-              <Field data-invalid={Boolean(fieldErrors?.description)}>
-                <FieldLabel htmlFor="description">Description</FieldLabel>
-                <FieldDescription id="description-description">
-                  Short context for guests and event operators.
-                </FieldDescription>
-                <Textarea
-                  id="description"
-                  name="description"
-                  defaultValue={settings?.description ?? ""}
-                  aria-invalid={Boolean(fieldErrors?.description)}
-                  aria-describedby="description-description description-error"
-                  className="min-h-28"
-                />
-                <FieldMessage
-                  id="description-error"
-                  error={fieldErrors?.description}
-                />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-          <FieldSet>
-            <legend className="text-base font-semibold text-foreground">
-              Appearance
-            </legend>
-            <FieldGroup className="gap-6">
-              <Field data-invalid={Boolean(fieldErrors?.accentColor)}>
-                <FieldLabel htmlFor="accentColor">Accent color</FieldLabel>
-                <FieldDescription id="accent-color-description">
-                  Choose a preset or enter an exact six-digit hex value.
-                </FieldDescription>
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                  <Input
-                    id="accentColor"
-                    name="accentColor"
-                    value={accentColor}
-                    onChange={(event) => setAccentColor(event.target.value)}
-                    aria-invalid={Boolean(fieldErrors?.accentColor)}
-                    aria-describedby="accent-color-description accent-color-error"
-                    className="min-h-11 font-mono uppercase"
-                  />
-                  <input
-                    type="color"
-                    value={
-                      /^#[0-9a-f]{6}$/i.test(accentColor)
-                        ? accentColor
-                        : "#d076b4"
-                    }
-                    onChange={(event) => setAccentColor(event.target.value)}
-                    aria-label="Choose accent color"
-                    className="h-11 w-full cursor-pointer rounded-lg border border-input bg-background p-1 sm:w-16"
-                  />
-                </div>
-                <div
-                  className="flex flex-wrap gap-2"
-                  aria-label="Accent color presets"
-                >
-                  {COLOR_PRESETS.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      aria-label={`Use ${preset} accent color`}
-                      onClick={() => setAccentColor(preset)}
-                      className="size-11 rounded-full border-2 border-background shadow-sm ring-1 ring-border transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-ring"
-                      style={{ backgroundColor: preset }}
-                    />
-                  ))}
-                </div>
-                {contrast !== undefined && contrast < 4.5 ? (
-                  <p className="text-sm text-destructive">
-                    This color has limited contrast with one or more text
-                    colors. Check button labels carefully.
-                  </p>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <fieldset
+            disabled={pending}
+            className="space-y-8 rounded-2xl border border-border bg-card p-6 shadow-sm"
+          >
+            {(state.error || fieldErrors) && (
+              <div
+                ref={errorSummaryRef}
+                tabIndex={-1}
+                role="alert"
+                className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-destructive/40"
+              >
+                <p className="font-semibold">Review the highlighted fields.</p>
+                {state.error ? <p className="mt-1">{state.error}</p> : null}
+                {fieldErrors ? (
+                  <ul className="mt-2 list-disc pl-5">
+                    {Object.entries(fieldErrors).map(([field, message]) => (
+                      <li key={field}>{message}</li>
+                    ))}
+                  </ul>
                 ) : null}
-                <FieldMessage
-                  id="accent-color-error"
-                  error={fieldErrors?.accentColor}
-                />
-              </Field>
-              <LogoDropzone
-                hasLogo={Boolean(settings?.hasLogo)}
-                existingLogoAlt={settings?.logoAlt ?? "Event logo"}
-                updatedAt={settings?.updatedAt ?? ""}
-                error={fieldErrors?.logo}
-                pending={pending}
-                onDirty={() => setDirty(true)}
-              />
-              <Field>
-                <FieldLabel htmlFor="logoAlt">Logo alt text</FieldLabel>
-                <FieldDescription id="logo-alt-description">
-                  Describe the logo for screen-reader users.
-                </FieldDescription>
-                <Input
-                  id="logoAlt"
-                  type="text"
-                  name="logoAlt"
-                  value={logoAlt}
-                  onChange={(event) => setLogoAlt(event.target.value)}
-                  aria-describedby="logo-alt-description logo-alt-warning"
-                  className="min-h-11"
-                />
-                {logoAlt.trim() === "" ? (
-                  <p id="logo-alt-warning" className="text-sm text-destructive">
-                    Blank alt text is only appropriate when this logo is
-                    decorative.
-                  </p>
-                ) : null}
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-          <FieldSet>
-            <legend className="text-base font-semibold text-foreground">
-              Draw pool
-            </legend>
-            <FieldGroup>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field data-invalid={Boolean(fieldErrors?.minRange)}>
-                  <FieldLabel htmlFor="minRange">Min range</FieldLabel>
-                  <FieldDescription id="min-range-description">
-                    First eligible ticket number.
-                  </FieldDescription>
-                  <Input
-                    id="minRange"
-                    type="number"
-                    name="minRange"
-                    required
-                    min={1}
-                    max={9999}
-                    step={1}
-                    value={minRangeValue}
-                    onChange={(event) => setMinRangeValue(event.target.value)}
-                    aria-invalid={Boolean(fieldErrors?.minRange)}
-                    aria-describedby="min-range-description min-range-error"
-                    className="min-h-11"
-                  />
-                  <FieldMessage
-                    id="min-range-error"
-                    error={fieldErrors?.minRange}
-                  />
-                </Field>
-                <Field data-invalid={Boolean(fieldErrors?.maxRange)}>
-                  <FieldLabel htmlFor="maxRange">Max range</FieldLabel>
-                  <FieldDescription id="max-range-description">
-                    Last eligible ticket number.
-                  </FieldDescription>
-                  <Input
-                    id="maxRange"
-                    type="number"
-                    name="maxRange"
-                    required
-                    min={2}
-                    max={10000}
-                    step={1}
-                    value={maxRangeValue}
-                    onChange={(event) => setMaxRangeValue(event.target.value)}
-                    aria-invalid={Boolean(fieldErrors?.maxRange)}
-                    aria-describedby="max-range-description max-range-error"
-                    className="min-h-11"
-                  />
-                  <FieldMessage
-                    id="max-range-error"
-                    error={fieldErrors?.maxRange}
-                  />
-                </Field>
               </div>
-              <ExcludedNumbersEditor
-                initialNumbers={settings?.excludedNumbers ?? []}
-                minRange={minRange}
-                maxRange={maxRange}
-                serverError={fieldErrors?.excludedNumbers}
-                pending={pending}
-                onDirty={() => setDirty(true)}
-              />
-            </FieldGroup>
-          </FieldSet>
-          <div className="flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-muted-foreground" aria-live="polite">
-              {state.success || !dirty
-                ? "All changes saved"
-                : "Unsaved changes"}
-              {settings?.updatedAt
-                ? ` · Saved ${formatSavedAt(settings.updatedAt)}`
-                : null}
+            )}
+            <FieldSet>
+              <legend className="text-base font-semibold text-foreground">
+                Event details
+              </legend>
+              <FieldGroup>
+                <Field data-invalid={Boolean(fieldErrors?.title)}>
+                  <FieldLabel htmlFor="title">Title</FieldLabel>
+                  <FieldDescription id="title-description">
+                    Displayed above the winner picker.
+                  </FieldDescription>
+                  <Input
+                    id="title"
+                    type="text"
+                    name="title"
+                    required
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    aria-invalid={Boolean(fieldErrors?.title)}
+                    aria-describedby="title-description title-error"
+                    className="min-h-11"
+                  />
+                  <FieldMessage id="title-error" error={fieldErrors?.title} />
+                </Field>
+                <Field data-invalid={Boolean(fieldErrors?.description)}>
+                  <FieldLabel htmlFor="description">Description</FieldLabel>
+                  <FieldDescription id="description-description">
+                    Short context for guests and event operators.
+                  </FieldDescription>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    aria-invalid={Boolean(fieldErrors?.description)}
+                    aria-describedby="description-description description-error"
+                    className="min-h-28"
+                  />
+                  <FieldMessage
+                    id="description-error"
+                    error={fieldErrors?.description}
+                  />
+                </Field>
+              </FieldGroup>
+            </FieldSet>
+            <FieldSet>
+              <legend className="text-base font-semibold text-foreground">
+                Appearance
+              </legend>
+              <FieldGroup className="gap-6">
+                <Field data-invalid={Boolean(fieldErrors?.accentColor)}>
+                  <FieldLabel htmlFor="accentColor">Accent color</FieldLabel>
+                  <FieldDescription id="accent-color-description">
+                    Choose a preset or enter an exact six-digit hex value.
+                  </FieldDescription>
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <Input
+                      id="accentColor"
+                      name="accentColor"
+                      value={accentColor}
+                      onChange={(event) => setAccentColor(event.target.value)}
+                      aria-invalid={Boolean(fieldErrors?.accentColor)}
+                      aria-describedby="accent-color-description accent-color-error"
+                      className="min-h-11 font-mono uppercase"
+                    />
+                    <input
+                      type="color"
+                      value={
+                        /^#[0-9a-f]{6}$/i.test(accentColor)
+                          ? accentColor
+                          : "#d076b4"
+                      }
+                      onChange={(event) => setAccentColor(event.target.value)}
+                      aria-label="Choose accent color"
+                      className="h-11 w-full cursor-pointer rounded-lg border border-input bg-background p-1 sm:w-16"
+                    />
+                  </div>
+                  <div
+                    className="flex flex-wrap gap-2"
+                    aria-label="Accent color presets"
+                  >
+                    {COLOR_PRESETS.map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        aria-label={`Use ${preset} accent color`}
+                        onClick={() => setAccentColor(preset)}
+                        className="size-11 rounded-full border-2 border-background shadow-sm ring-1 ring-border transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-ring"
+                        style={{ backgroundColor: preset }}
+                      />
+                    ))}
+                  </div>
+                  {contrast !== undefined && contrast < 4.5 ? (
+                    <p className="text-sm text-destructive">
+                      This color has limited contrast with one or more text
+                      colors. Check button labels carefully.
+                    </p>
+                  ) : null}
+                  <FieldMessage
+                    id="accent-color-error"
+                    error={fieldErrors?.accentColor}
+                  />
+                </Field>
+                <LogoDropzone
+                  hasLogo={Boolean(settings?.hasLogo)}
+                  existingLogoAlt={settings?.logoAlt ?? "Event logo"}
+                  updatedAt={settings?.updatedAt ?? ""}
+                  error={fieldErrors?.logo}
+                  pending={pending}
+                  onDirty={() => setDirty(true)}
+                  onPreviewChange={setReplacementLogoUrl}
+                  onRemoveChange={setLogoMarkedForRemoval}
+                />
+                <Field>
+                  <FieldLabel htmlFor="logoAlt">Logo alt text</FieldLabel>
+                  <FieldDescription id="logo-alt-description">
+                    Describe the logo for screen-reader users.
+                  </FieldDescription>
+                  <Input
+                    id="logoAlt"
+                    type="text"
+                    name="logoAlt"
+                    value={logoAlt}
+                    onChange={(event) => setLogoAlt(event.target.value)}
+                    aria-describedby="logo-alt-description logo-alt-warning"
+                    className="min-h-11"
+                  />
+                  {logoAlt.trim() === "" ? (
+                    <p
+                      id="logo-alt-warning"
+                      className="text-sm text-destructive"
+                    >
+                      Blank alt text is only appropriate when this logo is
+                      decorative.
+                    </p>
+                  ) : null}
+                </Field>
+              </FieldGroup>
+            </FieldSet>
+            <FieldSet>
+              <legend className="text-base font-semibold text-foreground">
+                Draw pool
+              </legend>
+              <FieldGroup>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field data-invalid={Boolean(fieldErrors?.minRange)}>
+                    <FieldLabel htmlFor="minRange">Min range</FieldLabel>
+                    <FieldDescription id="min-range-description">
+                      First eligible ticket number.
+                    </FieldDescription>
+                    <Input
+                      id="minRange"
+                      type="number"
+                      name="minRange"
+                      required
+                      min={1}
+                      max={9999}
+                      step={1}
+                      value={minRangeValue}
+                      onChange={(event) => setMinRangeValue(event.target.value)}
+                      aria-invalid={Boolean(fieldErrors?.minRange)}
+                      aria-describedby="min-range-description min-range-error"
+                      className="min-h-11"
+                    />
+                    <FieldMessage
+                      id="min-range-error"
+                      error={fieldErrors?.minRange}
+                    />
+                  </Field>
+                  <Field data-invalid={Boolean(fieldErrors?.maxRange)}>
+                    <FieldLabel htmlFor="maxRange">Max range</FieldLabel>
+                    <FieldDescription id="max-range-description">
+                      Last eligible ticket number.
+                    </FieldDescription>
+                    <Input
+                      id="maxRange"
+                      type="number"
+                      name="maxRange"
+                      required
+                      min={2}
+                      max={10000}
+                      step={1}
+                      value={maxRangeValue}
+                      onChange={(event) => setMaxRangeValue(event.target.value)}
+                      aria-invalid={Boolean(fieldErrors?.maxRange)}
+                      aria-describedby="max-range-description max-range-error"
+                      className="min-h-11"
+                    />
+                    <FieldMessage
+                      id="max-range-error"
+                      error={fieldErrors?.maxRange}
+                    />
+                  </Field>
+                </div>
+                <ExcludedNumbersEditor
+                  minRange={minRange}
+                  maxRange={maxRange}
+                  serverError={fieldErrors?.excludedNumbers}
+                  pending={pending}
+                  onDirty={() => setDirty(true)}
+                  numbers={excludedNumbers}
+                  onNumbersChange={setExcludedNumbers}
+                />
+              </FieldGroup>
+            </FieldSet>
+            <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+              <div className="text-sm text-muted-foreground" aria-live="polite">
+                {(state.success && !dirty) || !dirty
+                  ? "All changes saved"
+                  : "Unsaved changes"}
+                {settings?.updatedAt
+                  ? ` · Saved ${formatSavedAt(settings.updatedAt)}`
+                  : null}
+              </div>
+              <Button
+                type="submit"
+                disabled={pending}
+                variant="default"
+                size="lg"
+              >
+                {pending ? "Saving…" : "Save settings"}
+              </Button>
             </div>
-            <Button
-              type="submit"
-              disabled={pending}
-              variant="default"
-              size="lg"
-            >
-              {pending ? "Saving…" : "Save settings"}
-            </Button>
-          </div>
-        </fieldset>
+          </fieldset>
+          <SettingsPreview
+            title={title}
+            description={description}
+            accentColor={accentColor}
+            logoAlt={logoAlt}
+            logoUrl={
+              replacementLogoUrl
+                ? replacementLogoUrl
+                : logoMarkedForRemoval
+                  ? undefined
+                  : currentLogoUrl
+            }
+            minRange={minRange}
+            maxRange={maxRange}
+            excludedNumbers={excludedNumbers}
+          />
+        </div>
       </form>
-      <Toaster richColors position="bottom-right" />
     </>
   );
 }
