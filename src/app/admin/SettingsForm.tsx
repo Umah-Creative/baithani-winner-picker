@@ -70,7 +70,7 @@ function contrastRatio(color: string): number | undefined {
       channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
     return total + linear * [0.2126, 0.7152, 0.0722][index];
   }, 0);
-  return Math.max((luminance + 0.05) / 0.05, 1.05 / (luminance + 0.05));
+  return Math.min((luminance + 0.05) / 0.05, 1.05 / (luminance + 0.05));
 }
 
 function FieldMessage({ id, error }: { id: string; error?: string }) {
@@ -109,19 +109,31 @@ function LogoDropzone({
     };
   }, []);
 
-  function selectFile(file: File | undefined) {
-    if (!file) return;
-    if (!ACCEPTED_LOGO_TYPES.has(file.type)) {
-      setClientError("Logo must be PNG, JPEG, WebP, or GIF.");
-      return;
-    }
-    if (file.size > MAX_LOGO_BYTES) {
-      setClientError("Logo must be smaller than 5 MB.");
-      return;
-    }
+  function clearPreview() {
     if (previewUrlRef.current?.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrlRef.current);
     }
+    previewUrlRef.current = null;
+    setPreview(null);
+  }
+
+  function rejectFile(message: string) {
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    clearPreview();
+    setClientError(message);
+  }
+
+  function selectFile(file: File | undefined) {
+    if (!file) return;
+    if (!ACCEPTED_LOGO_TYPES.has(file.type)) {
+      rejectFile("Logo must be PNG, JPEG, WebP, or GIF.");
+      return;
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      rejectFile("Logo must be smaller than 5 MB.");
+      return;
+    }
+    clearPreview();
     const url =
       typeof URL.createObjectURL === "function"
         ? URL.createObjectURL(file)
@@ -280,11 +292,33 @@ function ExcludedNumbersEditor({
   const [numbers, setNumbers] = useState(initialNumbers);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string>();
-  const eligibleCount = Math.max(0, maxRange - minRange + 1 - numbers.length);
+  const rangeIsValid =
+    Number.isSafeInteger(minRange) &&
+    Number.isSafeInteger(maxRange) &&
+    minRange < maxRange;
+  const inRangeNumbers = rangeIsValid
+    ? numbers.filter((number) => number >= minRange && number <= maxRange)
+    : [];
+  const rangeError = rangeIsValid
+    ? numbers
+        .filter((number) => number < minRange || number > maxRange)
+        .map(
+          (number) =>
+            `Excluded number ${number} must be between ${minRange} and ${maxRange}.`
+        )[0]
+    : undefined;
+  const eligibleCount = rangeIsValid
+    ? Math.max(0, maxRange - minRange + 1 - inRangeNumbers.length)
+    : 0;
+  const message = error ?? rangeError ?? serverError;
 
   function addNumbers(raw: string) {
     const tokens = raw.split(/[\n,]/).map((token) => token.trim());
     if (tokens.every((token) => token === "")) return;
+    if (!rangeIsValid) {
+      setError("Set a valid range before excluding numbers.");
+      return;
+    }
     const next = [...numbers];
     for (const token of tokens) {
       if (!token) {
@@ -319,7 +353,7 @@ function ExcludedNumbersEditor({
   }
 
   return (
-    <Field data-invalid={Boolean(error ?? serverError)}>
+    <Field data-invalid={Boolean(message)}>
       <FieldLabel htmlFor="excludedNumbers">Excluded numbers</FieldLabel>
       <FieldDescription id="excluded-numbers-description">
         Press Enter or paste comma- or line-separated numbers to remove them
@@ -346,7 +380,7 @@ function ExcludedNumbersEditor({
           }
         }}
         aria-describedby="excluded-numbers-description excluded-numbers-error"
-        aria-invalid={Boolean(error ?? serverError)}
+        aria-invalid={Boolean(message)}
         className="min-h-11"
       />
       {numbers.length ? (
@@ -382,7 +416,7 @@ function ExcludedNumbersEditor({
       <p className="text-sm font-medium text-foreground">
         {eligibleCount} eligible numbers
       </p>
-      <FieldMessage id="excluded-numbers-error" error={error ?? serverError} />
+      <FieldMessage id="excluded-numbers-error" error={message} />
     </Field>
   );
 }
@@ -395,10 +429,19 @@ export function SettingsForm({ settings }: SettingsFormProps) {
   const [accentColor, setAccentColor] = useState(
     settings?.accentColor ?? "#d076b4"
   );
+  const [logoAlt, setLogoAlt] = useState(settings?.logoAlt ?? "");
+  const [minRangeValue, setMinRangeValue] = useState(
+    String(settings?.minRange ?? 1)
+  );
+  const [maxRangeValue, setMaxRangeValue] = useState(
+    String(settings?.maxRange ?? 1000)
+  );
   const [dirty, setDirty] = useState(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const contrast = useMemo(() => contrastRatio(accentColor), [accentColor]);
   const fieldErrors = state.fieldErrors;
+  const minRange = Number(minRangeValue);
+  const maxRange = Number(maxRangeValue);
 
   useEffect(() => {
     if (state.success) {
@@ -527,8 +570,8 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                 </div>
                 {contrast !== undefined && contrast < 4.5 ? (
                   <p className="text-sm text-destructive">
-                    This color has limited contrast with both black and white
-                    text. Check button labels carefully.
+                    This color has limited contrast with one or more text
+                    colors. Check button labels carefully.
                   </p>
                 ) : null}
                 <FieldMessage
@@ -553,10 +596,17 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   id="logoAlt"
                   type="text"
                   name="logoAlt"
-                  defaultValue={settings?.logoAlt ?? ""}
-                  aria-describedby="logo-alt-description"
+                  value={logoAlt}
+                  onChange={(event) => setLogoAlt(event.target.value)}
+                  aria-describedby="logo-alt-description logo-alt-warning"
                   className="min-h-11"
                 />
+                {logoAlt.trim() === "" ? (
+                  <p id="logo-alt-warning" className="text-sm text-destructive">
+                    Blank alt text is only appropriate when this logo is
+                    decorative.
+                  </p>
+                ) : null}
               </Field>
             </FieldGroup>
           </FieldSet>
@@ -579,7 +629,8 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                     min={1}
                     max={9999}
                     step={1}
-                    defaultValue={settings?.minRange ?? 1}
+                    value={minRangeValue}
+                    onChange={(event) => setMinRangeValue(event.target.value)}
                     aria-invalid={Boolean(fieldErrors?.minRange)}
                     aria-describedby="min-range-description min-range-error"
                     className="min-h-11"
@@ -602,7 +653,8 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                     min={2}
                     max={10000}
                     step={1}
-                    defaultValue={settings?.maxRange ?? 1000}
+                    value={maxRangeValue}
+                    onChange={(event) => setMaxRangeValue(event.target.value)}
                     aria-invalid={Boolean(fieldErrors?.maxRange)}
                     aria-describedby="max-range-description max-range-error"
                     className="min-h-11"
@@ -615,8 +667,8 @@ export function SettingsForm({ settings }: SettingsFormProps) {
               </div>
               <ExcludedNumbersEditor
                 initialNumbers={settings?.excludedNumbers ?? []}
-                minRange={settings?.minRange ?? 1}
-                maxRange={settings?.maxRange ?? 1000}
+                minRange={minRange}
+                maxRange={maxRange}
                 serverError={fieldErrors?.excludedNumbers}
                 pending={pending}
                 onDirty={() => setDirty(true)}

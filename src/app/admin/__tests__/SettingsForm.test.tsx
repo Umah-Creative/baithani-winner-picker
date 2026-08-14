@@ -37,6 +37,51 @@ describe("SettingsForm logo controls", () => {
       screen.getByRole("img", { name: "Preview of baithani.png" })
     ).toBeTruthy();
   });
+
+  it("clears an invalid file so it cannot be submitted", async () => {
+    const user = userEvent.setup({ applyAccept: false });
+    render(<SettingsForm settings={settings} />);
+
+    const input = screen.getByLabelText<HTMLInputElement>("Logo");
+    await user.upload(
+      input,
+      new File(["not a logo"], "logo.txt", { type: "text/plain" })
+    );
+
+    expect(input.files).toHaveLength(0);
+    expect(
+      screen.getByText("Logo must be PNG, JPEG, WebP, or GIF.")
+    ).toBeTruthy();
+  });
+
+  it("warns when editable logo alt text is left blank", async () => {
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    await user.clear(screen.getByLabelText("Logo alt text"));
+
+    expect(
+      screen.getByText(
+        "Blank alt text is only appropriate when this logo is decorative."
+      )
+    ).toBeTruthy();
+  });
+});
+
+describe("SettingsForm accent color", () => {
+  it("warns for a color with weak contrast against one text color", async () => {
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    await user.clear(screen.getByLabelText("Accent color"));
+    await user.type(screen.getByLabelText("Accent color"), "#777777");
+
+    expect(
+      screen.getByText(
+        "This color has limited contrast with one or more text colors. Check button labels carefully."
+      )
+    ).toBeTruthy();
+  });
 });
 
 describe("SettingsForm excluded-number editor", () => {
@@ -50,6 +95,20 @@ describe("SettingsForm excluded-number editor", () => {
     expect(screen.getByRole("button", { name: "Remove 11" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Remove 12" })).toBeTruthy();
     expect(screen.getByText("97 eligible numbers")).toBeTruthy();
+  });
+
+  it("uses the live range when it validates entries and counts eligibility", async () => {
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    await user.clear(screen.getByLabelText("Min range"));
+    await user.type(screen.getByLabelText("Min range"), "5");
+    await user.type(screen.getByLabelText("Excluded numbers"), "3{Enter}");
+
+    expect(
+      screen.getByText("Excluded number 3 must be between 5 and 100.")
+    ).toBeTruthy();
+    expect(screen.getByText("96 eligible numbers")).toBeTruthy();
   });
 });
 
