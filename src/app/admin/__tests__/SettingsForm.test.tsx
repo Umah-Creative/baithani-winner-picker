@@ -5,18 +5,21 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/actions", () => ({
+const mocks = vi.hoisted(() => ({
   updateEventSettings: vi.fn(),
 }));
 
-import { SettingsForm } from "../SettingsForm";
+vi.mock("@/lib/actions", () => ({
+  updateEventSettings: mocks.updateEventSettings,
+}));
 
-afterEach(cleanup);
+import { SettingsForm } from "../SettingsForm";
 
 const settings = {
   title: "Baithani Night",
@@ -30,17 +33,30 @@ const settings = {
   updatedAt: "2026-08-14T12:00:00.000Z",
 };
 
+beforeEach(() => {
+  mocks.updateEventSettings.mockReset();
+  mocks.updateEventSettings.mockResolvedValue({});
+});
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
 describe("SettingsForm logo controls", () => {
-  it("previews an accepted replacement file with its filename and size", async () => {
+  it("previews an accepted replacement inside the upload container", async () => {
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 
     const logo = new File(["logo"], "baithani.png", { type: "image/png" });
     await user.upload(screen.getByLabelText("Logo"), logo);
 
-    expect(screen.getByText("baithani.png")).toBeTruthy();
+    const dropzone = screen.getByTestId("logo-dropzone");
+    expect(within(dropzone).getByText("baithani.png")).toBeTruthy();
     expect(
-      screen.getByRole("img", { name: "Preview of baithani.png" })
+      within(dropzone).getByRole("img", {
+        name: "Preview of baithani.png",
+      })
     ).toBeTruthy();
   });
 
@@ -58,6 +74,7 @@ describe("SettingsForm logo controls", () => {
     expect(
       screen.getByText("Logo must be PNG, JPEG, WebP, or GIF.")
     ).toBeTruthy();
+    expect(screen.getByText("Current event logo")).toBeTruthy();
   });
 
   it("assigns a dropped logo to the native form input", () => {
@@ -80,146 +97,225 @@ describe("SettingsForm logo controls", () => {
         assignedFiles = files;
       },
     });
-    fireEvent.drop(screen.getByRole("button", { name: "Upload logo" }), {
+    fireEvent.drop(screen.getByTestId("logo-dropzone"), {
       dataTransfer: { files: [logo] },
     });
 
     expect(input.files?.[0]).toBe(logo);
-    vi.unstubAllGlobals();
   });
 
-  it("warns when editable logo alt text is left blank", async () => {
+  it("shows alt text only while a logo is visible", async () => {
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 
     await user.clear(screen.getByLabelText("Logo alt text"));
-
     expect(
       screen.getByText(
         "Blank alt text is only appropriate when this logo is decorative."
       )
     ).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(screen.queryByLabelText("Logo alt text")).toBeNull();
+    expect(screen.getByText("Logo marked for removal")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Undo removal" }));
+    expect(screen.getByLabelText("Logo alt text")).toBeTruthy();
+  });
+
+  it("selecting a replacement after removal clears removal intent", async () => {
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    await user.upload(
+      screen.getByLabelText("Logo"),
+      new File(["logo"], "replacement.webp", { type: "image/webp" })
+    );
+
+    expect(screen.getByText("replacement.webp")).toBeTruthy();
     expect(
-      document
-        .querySelector("aside[aria-label='Live preview'] img")
-        ?.getAttribute("alt")
+      document.querySelector<HTMLInputElement>('input[name="removeLogo"]')
+        ?.value
     ).toBe("");
   });
-});
 
-describe("SettingsForm accent color", () => {
-  it("marks a preset color selection as unsaved", async () => {
+  it("removing after replacement clears the selected file", async () => {
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 
-    await user.click(
-      screen.getByRole("button", { name: "Use #632d50 accent color" })
+    const input = screen.getByLabelText<HTMLInputElement>("Logo");
+    await user.upload(
+      input,
+      new File(["logo"], "replacement.webp", { type: "image/webp" })
     );
+    await user.click(screen.getByRole("button", { name: "Remove" }));
 
-    expect(screen.getByLabelText<HTMLInputElement>("Accent color").value).toBe(
-      "#632d50"
-    );
-    expect(screen.getByText(/Unsaved changes/)).toBeTruthy();
-  });
-
-  it("does not warn for the default color when its active action foreground passes contrast", () => {
-    render(<SettingsForm settings={settings} />);
-
+    expect(input.files).toHaveLength(0);
+    expect(screen.getByText("Logo marked for removal")).toBeTruthy();
     expect(
-      screen.queryByText(
-        "This color has limited contrast with one or more text colors. Check button labels carefully."
-      )
-    ).toBeNull();
+      document.querySelector<HTMLInputElement>('input[name="removeLogo"]')
+        ?.value
+    ).toBe("on");
   });
 
-  it("warns for a color with weak contrast against one text color", async () => {
+  it("resets replacement state and the native input after save", async () => {
+    mocks.updateEventSettings.mockResolvedValue({ success: true });
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 
-    await user.clear(screen.getByLabelText("Accent color"));
-    await user.type(screen.getByLabelText("Accent color"), "#777777");
+    await user.upload(
+      screen.getByLabelText("Logo"),
+      new File(["logo"], "replacement.png", { type: "image/png" })
+    );
+    await user.click(screen.getByRole("button", { name: "Save settings" }));
 
-    expect(
-      screen.getByText(
-        "This color has limited contrast with one or more text colors. Check button labels carefully."
-      )
-    ).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.queryByText("replacement.png")).toBeNull();
+    });
+    expect(screen.getByText("Current event logo")).toBeTruthy();
+    expect(screen.getByLabelText<HTMLInputElement>("Logo").files).toHaveLength(
+      0
+    );
+  });
+
+  it("releases replacement blob URLs when the editor unmounts", async () => {
+    const createObjectURL = vi.fn(() => "blob:replacement-logo");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
+    const user = userEvent.setup();
+    const view = render(<SettingsForm settings={settings} />);
+
+    await user.upload(
+      screen.getByLabelText("Logo"),
+      new File(["logo"], "replacement.png", { type: "image/png" })
+    );
+    view.unmount();
+
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:replacement-logo");
   });
 });
 
 describe("SettingsForm excluded-number editor", () => {
-  it("turns comma-separated entries into removable tokens when Enter is pressed", async () => {
+  it("adds whole numbers with the action button and Enter", async () => {
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 
     const input = screen.getByLabelText("Excluded numbers");
-    await user.type(input, "11, 12{Enter}");
+    await user.type(input, "11");
+    await user.click(screen.getByRole("button", { name: "Add number" }));
+    await user.type(input, "12{Enter}");
 
     expect(screen.getByRole("button", { name: "Remove 11" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Remove 12" })).toBeTruthy();
     expect(screen.getByText("97 eligible numbers")).toBeTruthy();
   });
 
-  it("uses the live range when it validates entries and counts eligibility", async () => {
+  it("adds comma- and line-separated values from the progressive bulk control", async () => {
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    await user.click(screen.getByText("Paste multiple numbers"));
+    await user.type(
+      screen.getByLabelText("Numbers to paste"),
+      "11, 12{enter}13"
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Add pasted numbers" })
+    );
+
+    expect(screen.getByRole("button", { name: "Remove 11" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove 12" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove 13" })).toBeTruthy();
+  });
+
+  it("uses the live range and silently deduplicates", async () => {
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 
     await user.clear(screen.getByLabelText("Min range"));
     await user.type(screen.getByLabelText("Min range"), "5");
     await user.type(screen.getByLabelText("Excluded numbers"), "3{Enter}");
-
     expect(
       screen.getByText("Excluded number 3 must be between 5 and 100.")
     ).toBeTruthy();
-    expect(screen.getByText("96 eligible numbers")).toBeTruthy();
-  });
-
-  it("rejects live ranges outside the server bounds before accepting entries", async () => {
-    const user = userEvent.setup();
-    render(<SettingsForm settings={settings} />);
 
     await user.clear(screen.getByLabelText("Min range"));
-    await user.type(screen.getByLabelText("Min range"), "0");
-    await user.clear(screen.getByLabelText("Max range"));
-    await user.type(screen.getByLabelText("Max range"), "10001");
-    await user.type(screen.getByLabelText("Excluded numbers"), "1{Enter}");
-
-    expect(
-      screen.getByText("Set a valid range before excluding numbers.")
-    ).toBeTruthy();
-    expect(screen.getByText("0 eligible numbers")).toBeTruthy();
+    await user.type(screen.getByLabelText("Min range"), "1");
+    await user.clear(screen.getByLabelText("Excluded numbers"));
+    await user.type(screen.getByLabelText("Excluded numbers"), "4{Enter}");
+    expect(screen.queryByText("Excluded number 4 is a duplicate.")).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Remove 4" })).toHaveLength(1);
   });
-});
 
-describe("SettingsForm logo replacement precedence", () => {
-  it("clears a pending removal when a replacement is selected", async () => {
+  it("ignores empty pasted values and strips non-numeric text", async () => {
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 
-    await user.click(
-      screen.getByRole("checkbox", { name: "Remove current logo" })
-    );
-    await user.click(screen.getByRole("button", { name: "Mark for removal" }));
-    await user.upload(
-      screen.getByLabelText("Logo"),
-      new File(["logo"], "replacement.webp", { type: "image/webp" })
+    await user.click(screen.getByText("Paste multiple numbers"));
+    const textarea = screen.getByLabelText("Numbers to paste");
+    await user.type(textarea, " 11,, alpha 12{enter}{enter}11, 13 ");
+    expect((textarea as HTMLTextAreaElement).value).toBe(
+      " 11,,  12\n\n11, 13 "
     );
 
-    expect(
-      screen.getByRole<HTMLInputElement>("checkbox", {
-        name: "Remove current logo",
-      }).checked
-    ).toBe(false);
-    expect(
-      screen.getByText(
-        "Replacement selected. Current logo will be kept until you save."
-      )
-    ).toBeTruthy();
+    await user.click(
+      screen.getByRole("button", { name: "Add pasted numbers" })
+    );
+    expect(screen.getByRole("button", { name: "Remove 11" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove 12" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Remove 13" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Remove 11" })).toHaveLength(
+      1
+    );
+  });
+
+  it("submits a valid unfinished draft instead of silently dropping it", async () => {
+    mocks.updateEventSettings.mockResolvedValue({ success: true });
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    await user.type(screen.getByLabelText("Excluded numbers"), "11");
+    await user.click(screen.getByRole("button", { name: "Save settings" }));
+
+    await waitFor(() => expect(mocks.updateEventSettings).toHaveBeenCalled());
+    const formData = mocks.updateEventSettings.mock.calls[0][1] as FormData;
+    expect(formData.get("excludedNumbers")).toBe("4,11");
+    expect(screen.getByRole("button", { name: "Remove 11" })).toBeTruthy();
   });
 });
 
-describe("SettingsForm live preview", () => {
-  it("updates the compact draft preview from edited event details", async () => {
+describe("SettingsForm appearance presets", () => {
+  it("offers named color advice and marks a selected preset as active", async () => {
+    const user = userEvent.setup();
+    render(<SettingsForm settings={settings} />);
+
+    const preset = screen.getByRole("button", {
+      name: "Use Stage blue (#4f7cac) accent color",
+    });
+    expect(preset.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByText("Calm, clear blue")).toBeTruthy();
+
+    await user.click(preset);
+
+    expect(screen.getByLabelText<HTMLInputElement>("Accent color").value).toBe(
+      "#4f7cac"
+    );
+    expect(preset.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByText("Unsaved changes")).toBeTruthy();
+  });
+});
+
+describe("SettingsForm previews and status", () => {
+  it("does not claim an unsaved initial setup is saved", () => {
+    render(<SettingsForm settings={null} />);
+
+    expect(screen.getByText("Setup not saved yet")).toBeTruthy();
+    expect(screen.queryByText("All changes saved")).toBeNull();
+  });
+
+  it("updates picker and shared-link previews from one content source", async () => {
     const user = userEvent.setup();
     render(<SettingsForm settings={settings} />);
 
@@ -228,12 +324,17 @@ describe("SettingsForm live preview", () => {
     await user.clear(screen.getByLabelText("Description"));
     await user.type(screen.getByLabelText("Description"), "Doors at six");
 
-    const preview = screen.getByLabelText("Live preview");
-    expect(
-      within(preview).getByRole("heading", { name: "Live preview" })
-    ).toBeTruthy();
+    const preview = screen.getByLabelText("Settings preview");
     expect(within(preview).getByText("Friday draw")).toBeTruthy();
     expect(within(preview).getByText("Doors at six")).toBeTruthy();
     expect(within(preview).getByText("1–100 · 1 excluded")).toBeTruthy();
+
+    await user.click(within(preview).getByRole("tab", { name: "Shared link" }));
+    expect(within(preview).getByText("Multimedia Baithani")).toBeTruthy();
+    expect(
+      within(preview).getByText(
+        "Preview of the card shown when this link is shared."
+      )
+    ).toBeTruthy();
   });
 });

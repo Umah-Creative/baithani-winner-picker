@@ -13,17 +13,10 @@ export function parseExcludedNumbers(
   const values: number[] = [];
   const seen = new Set<number>();
 
-  for (const token of raw.split(",")) {
+  for (const token of raw.split(/[\s,]+/).filter(Boolean)) {
     const value = token.trim();
 
-    if (!value) {
-      return {
-        ok: false,
-        error: "Excluded numbers cannot contain an empty token.",
-      };
-    }
-
-    if (!/^-?\d+$/.test(value)) {
+    if (!/^\d+$/.test(value)) {
       return {
         ok: false,
         error: `Excluded number "${value}" must be a whole number.`,
@@ -46,17 +39,14 @@ export function parseExcludedNumbers(
     }
 
     if (seen.has(number)) {
-      return {
-        ok: false,
-        error: `Excluded number ${number} is a duplicate.`,
-      };
+      continue;
     }
 
     seen.add(number);
     values.push(number);
   }
 
-  return { ok: true, values };
+  return { ok: true, values: values.sort((a, b) => a - b) };
 }
 
 export function validateExcludedNumbers(
