@@ -4,17 +4,17 @@
   "description": "Doorprize winner picker for Baithani events.",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png",
+      "src": "/baithani-icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/baithani-icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
   ],
-  "theme_color": "#0f0a1e",
-  "background_color": "#0f0a1e",
+  "theme_color": "#d076b4",
+  "background_color": "#fff7fb",
   "display": "standalone"
 }
