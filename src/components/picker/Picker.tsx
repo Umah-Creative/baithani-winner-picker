@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AppFooter } from "@/components/layout/AppFooter";
 import { Button } from "@/components/ui/button";
 import { createBrandPalette } from "@/lib/brand-color";
 import type { EventSettingsView } from "@/lib/event-settings.type";
@@ -390,16 +391,10 @@ export function Picker(props: PickerProps) {
           </AlertDialogContent>
         </AlertDialog>
 
-        <footer className="relative z-10 pt-4 text-center text-sm text-muted-foreground sm:pt-5">
-          &copy; 2023–{new Date().getFullYear()} · Powered by{" "}
-          <strong className="font-semibold text-foreground">
-            Multimedia Baithani
-          </strong>
-          .
-          {drawnCount > 0 ? (
-            <span className="sr-only">. {drawnCount} numbers drawn.</span>
-          ) : null}
-        </footer>
+        <AppFooter />
+        {drawnCount > 0 ? (
+          <span className="sr-only">{drawnCount} numbers drawn.</span>
+        ) : null}
       </m.main>
     </LazyMotion>
   );

@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { logoutAdmin } from "@/lib/actions";
+import { AppFooter } from "@/components/layout/AppFooter";
 import { isAdminAuthenticated } from "@/lib/auth.service";
 import { getEventSettings } from "@/lib/event-settings.service";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { Button } from "@/components/ui/button";
 
+import { AdminHeader } from "./AdminHeader";
 import { SettingsForm } from "./SettingsForm";
 
 export const metadata: Metadata = {
@@ -24,37 +22,17 @@ export default async function AdminPage() {
   const settings = await getEventSettings();
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:py-10">
-      <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-primary">
-            Admin control center
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold text-foreground">
-            Event settings
-          </h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" render={<Link href="/" />}>
-            Open picker
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            render={<Link href="/admin/logs" />}
-          >
-            Logs
-          </Button>
-          <ThemeToggle />
-          <form action={logoutAdmin}>
-            <Button type="submit" variant="outline" size="sm">
-              Log out
-            </Button>
-          </form>
-        </div>
-      </header>
+    <main className="mx-auto flex min-h-svh w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:py-10">
+      <AdminHeader
+        activeSection="settings"
+        title="Event settings"
+        description="Manage event identity, sharing appearance, and the eligible draw pool."
+      />
 
-      <SettingsForm settings={settings} />
+      <div className="flex-1">
+        <SettingsForm settings={settings} />
+      </div>
+      <AppFooter className="mt-8" />
     </main>
   );
 }
