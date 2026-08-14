@@ -5,3 +5,6 @@ pnpm-workspace.yaml
 .superpowers
 .commandcode
 docs/superpowers
+legacy
+.impeccable
+src/db/migrations

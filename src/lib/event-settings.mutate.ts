@@ -1,8 +1,11 @@
 import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
-import { eventSettings } from "@/lib/schema";
+import { db } from "@/db/client";
+import { eventSettings } from "@/db/schema";
+import { resolveLogoChange } from "@/lib/admin-audit.shared";
+import { validateExcludedNumbers } from "@/lib/event-settings.validation";
 import type {
+  EventSettingsAuditSnapshot,
   EventSettingsFieldError,
   EventSettingsInput,
   EventSettingsSaveResult,
@@ -10,6 +13,8 @@ import type {
 
 const ACTIVE_ID = 1;
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+const MIN_RANGE = 1;
+const MAX_RANGE = 10_000;
 const ALLOWED_LOGO_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -19,6 +24,12 @@ const ALLOWED_LOGO_TYPES = new Set([
 
 function validate(input: EventSettingsInput): EventSettingsFieldError {
   const fieldErrors: EventSettingsFieldError = {};
+  const isRangeValid =
+    Number.isInteger(input.minRange) &&
+    Number.isInteger(input.maxRange) &&
+    input.minRange >= MIN_RANGE &&
+    input.maxRange <= MAX_RANGE &&
+    input.minRange < input.maxRange;
 
   if (!input.title) {
     fieldErrors.title = "Title is required.";
@@ -26,16 +37,23 @@ function validate(input: EventSettingsInput): EventSettingsFieldError {
 
   if (!/^#[0-9a-fA-F]{6}$/.test(input.accentColor)) {
     fieldErrors.accentColor =
-      "Accent color must be a 6-digit hex value like #f0b429.";
+      "Accent color must be a 6-digit hex value like #d076b4.";
   }
 
-  if (
-    !Number.isInteger(input.minRange) ||
-    !Number.isInteger(input.maxRange) ||
-    input.minRange >= input.maxRange
-  ) {
-    fieldErrors.minRange = "Min must be less than max and both must be integers.";
-    fieldErrors.maxRange = "Max must be greater than min.";
+  if (!isRangeValid) {
+    fieldErrors.minRange =
+      "Min must be a whole number from 1 to 9,999 and lower than max.";
+    fieldErrors.maxRange =
+      "Max must be a whole number from 2 to 10,000 and greater than min.";
+  } else {
+    const excludedNumbersError = validateExcludedNumbers(
+      input.excludedNumbers,
+      input.minRange,
+      input.maxRange
+    );
+    if (excludedNumbersError) {
+      fieldErrors.excludedNumbers = excludedNumbersError;
+    }
   }
 
   if (input.logoBytes && !input.logoMime) {
@@ -49,8 +67,32 @@ function validate(input: EventSettingsInput): EventSettingsFieldError {
   return fieldErrors;
 }
 
+function toAuditSnapshot(input: {
+  title: string;
+  description: string;
+  accentColor: string;
+  logoBytes: Buffer | null;
+  logoMime: string | null;
+  logoAlt: string | null;
+  minRange: number;
+  maxRange: number;
+  excludedNumbers: number[];
+}): EventSettingsAuditSnapshot {
+  return {
+    title: input.title,
+    description: input.description,
+    accentColor: input.accentColor,
+    hasLogo: Boolean(input.logoBytes),
+    logoMime: input.logoMime,
+    logoAlt: input.logoAlt ?? input.title,
+    minRange: input.minRange,
+    maxRange: input.maxRange,
+    excludedNumbers: input.excludedNumbers,
+  };
+}
+
 export async function saveEventSettings(
-  input: EventSettingsInput,
+  input: EventSettingsInput
 ): Promise<EventSettingsSaveResult> {
   const fieldErrors = validate(input);
 
@@ -58,26 +100,38 @@ export async function saveEventSettings(
     return { ok: false, fieldErrors };
   }
 
-  const baseValues = {
-    title: input.title,
-    description: input.description,
-    accentColor: input.accentColor,
-    minRange: input.minRange,
-    maxRange: input.maxRange,
-    excludedNumbers: input.excludedNumbers,
-    logoAlt: input.logoAlt,
-    updatedAt: new Date(),
-  };
-
-  const values = input.removeLogo
-    ? { ...baseValues, logoBytes: null, logoMime: null }
-    : {
-        ...baseValues,
-        ...(input.logoBytes ? { logoBytes: input.logoBytes } : {}),
-        ...(input.logoMime ? { logoMime: input.logoMime } : {}),
-      };
-
   try {
+    const [previous] = await db
+      .select()
+      .from(eventSettings)
+      .where(eq(eventSettings.id, ACTIVE_ID))
+      .limit(1);
+    const logoChange = resolveLogoChange({
+      hasExistingLogo: Boolean(previous?.logoBytes),
+      hasReplacementLogo: Boolean(input.logoBytes),
+      removeLogo: input.removeLogo,
+    });
+    const baseValues = {
+      title: input.title,
+      description: input.description,
+      accentColor: input.accentColor,
+      minRange: input.minRange,
+      maxRange: input.maxRange,
+      excludedNumbers: input.excludedNumbers,
+      logoAlt: input.logoAlt,
+      updatedAt: new Date(),
+    };
+    const values =
+      logoChange === "remove"
+        ? { ...baseValues, logoBytes: null, logoMime: null }
+        : logoChange === "replace"
+          ? {
+              ...baseValues,
+              logoBytes: input.logoBytes,
+              logoMime: input.logoMime,
+            }
+          : baseValues;
+
     await db
       .insert(eventSettings)
       .values({ id: ACTIVE_ID, ...values })
@@ -86,7 +140,36 @@ export async function saveEventSettings(
         set: values,
       });
 
-    return { ok: true };
+    return {
+      ok: true,
+      audit: {
+        before: previous ? toAuditSnapshot(previous) : null,
+        after: {
+          ...toAuditSnapshot({
+            ...input,
+            logoBytes:
+              logoChange === "replace"
+                ? input.logoBytes
+                : logoChange === "remove"
+                  ? null
+                  : (previous?.logoBytes ?? null),
+            logoMime:
+              logoChange === "replace"
+                ? input.logoMime
+                : logoChange === "remove"
+                  ? null
+                  : (previous?.logoMime ?? null),
+          }),
+          hasLogo:
+            logoChange === "replace"
+              ? true
+              : logoChange === "remove"
+                ? false
+                : Boolean(previous?.logoBytes),
+        },
+        logoChange,
+      },
+    };
   } catch {
     return { ok: false, error: "Could not save settings." };
   }

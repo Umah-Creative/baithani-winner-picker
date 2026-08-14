@@ -1,36 +1,69 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+
 type RangeControlsProps = {
-  min: number;
-  max: number;
-  onMinChange: (value: number) => void;
-  onMaxChange: (value: number) => void;
+  min: string;
+  max: string;
+  disabled: boolean;
+  error: string | null;
+  onMinChange: (value: string) => void;
+  onMaxChange: (value: string) => void;
 };
 
 export function RangeControls(props: RangeControlsProps) {
-  const { min, max, onMinChange, onMaxChange } = props;
+  const { min, max, disabled, error, onMinChange, onMaxChange } = props;
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3 text-white">
-      <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium uppercase tracking-wider text-white/60 backdrop-blur">
-        Min
-        <input
-          type="number"
-          value={min}
-          onChange={(event) => onMinChange(event.target.valueAsNumber)}
-          className="w-20 rounded-md bg-transparent py-1 text-center text-lg font-semibold tabular-nums text-white outline-none focus:ring-1 focus:ring-[var(--brand)]"
-        />
-      </label>
-      <span className="text-white/30">—</span>
-      <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium uppercase tracking-wider text-white/60 backdrop-blur">
-        Max
-        <input
-          type="number"
-          value={max}
-          onChange={(event) => onMaxChange(event.target.valueAsNumber)}
-          className="w-20 rounded-md bg-transparent py-1 text-center text-lg font-semibold tabular-nums text-white outline-none focus:ring-1 focus:ring-[var(--brand)]"
-        />
-      </label>
+    <div className="flex flex-col items-center gap-2">
+      <div className="range-controls grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl p-2 sm:gap-3">
+        <label className="grid grid-cols-[auto_1fr] items-center gap-2">
+          <span className="pl-2 text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">
+            Min
+          </span>
+          <Input
+            variant="range"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={9999}
+            step={1}
+            value={min}
+            disabled={disabled}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "range-error" : undefined}
+            onChange={(event) => onMinChange(event.target.value)}
+          />
+        </label>
+        <span aria-hidden="true" className="text-muted-foreground">
+          —
+        </span>
+        <label className="grid grid-cols-[auto_1fr] items-center gap-2">
+          <span className="pl-2 text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">
+            Max
+          </span>
+          <Input
+            variant="range"
+            type="number"
+            inputMode="numeric"
+            min={2}
+            max={10000}
+            step={1}
+            value={max}
+            disabled={disabled}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "range-error" : undefined}
+            onChange={(event) => onMaxChange(event.target.value)}
+          />
+        </label>
+      </div>
+      {error ? (
+        <p id="range-error" role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">Inclusive draw range</p>
+      )}
     </div>
   );
 }

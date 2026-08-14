@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786650965310,
+      "tag": "0000_useful_squadron_supreme",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786653982514,
+      "tag": "0001_fat_punisher",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786714929108,
+      "tag": "0002_sparkling_betty_brant",
+      "breakpoints": true
+    }
+  ]
+}

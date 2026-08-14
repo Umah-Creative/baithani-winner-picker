@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
-import { eventSettings } from "@/lib/schema";
+import { db } from "@/db/client";
+import { eventSettings } from "@/db/schema";
 
 export async function GET() {
   const [row] = await db
-    .select({ logoBytes: eventSettings.logoBytes, logoMime: eventSettings.logoMime })
+    .select({
+      logoBytes: eventSettings.logoBytes,
+      logoMime: eventSettings.logoMime,
+    })
     .from(eventSettings)
     .where(eq(eventSettings.id, 1))
     .limit(1);

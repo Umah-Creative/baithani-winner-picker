@@ -1,28 +1,63 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioEngine } from "./AudioEngine";
 
 export function usePickerAudio() {
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const engineRef = useRef<AudioEngine | null>(null);
 
   useEffect(() => {
-    if (!engineRef.current) {
-      engineRef.current = new AudioEngine();
-    }
+    const engine = new AudioEngine();
+    engineRef.current = engine;
+
     return () => {
-      engineRef.current?.dispose();
+      engine.dispose();
       engineRef.current = null;
     };
   }, []);
 
-  return {
-    muted,
-    toggleMuted: () => setMuted((current) => !current),
-    startTicking: () => engineRef.current?.startTicking(muted),
-    stopTicking: () => engineRef.current?.stopTicking(),
-    playWin: () => void engineRef.current?.playWin(muted),
-  };
+  const toggleMuted = useCallback(() => {
+    setMuted((currentMuted) => {
+      const nextMuted = !currentMuted;
+
+      if (nextMuted) {
+        engineRef.current?.stopAll();
+      }
+
+      return nextMuted;
+    });
+  }, []);
+
+  const startDraw = useCallback(() => {
+    engineRef.current?.startDraw(muted);
+  }, [muted]);
+
+  const startReveal = useCallback(
+    (durationMs: number) => {
+      engineRef.current?.startReveal(muted, durationMs);
+    },
+    [muted]
+  );
+
+  const playWinner = useCallback(() => {
+    engineRef.current?.playWinner(muted);
+  }, [muted]);
+
+  const stopAll = useCallback(() => {
+    engineRef.current?.stopAll();
+  }, []);
+
+  return useMemo(
+    () => ({
+      muted,
+      toggleMuted,
+      startDraw,
+      startReveal,
+      playWinner,
+      stopAll,
+    }),
+    [muted, playWinner, startDraw, startReveal, stopAll, toggleMuted]
+  );
 }

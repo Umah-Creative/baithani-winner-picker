@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { logoutAdmin } from "@/lib/actions";
+import { AppFooter } from "@/components/layout/AppFooter";
 import { isAdminAuthenticated } from "@/lib/auth.service";
 import { getEventSettings } from "@/lib/event-settings.service";
 
+import { AdminHeader } from "./AdminHeader";
 import { SettingsForm } from "./SettingsForm";
 
 export const metadata: Metadata = {
@@ -21,20 +22,17 @@ export default async function AdminPage() {
   const settings = await getEventSettings();
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white">Event Settings</h1>
-        <form action={logoutAdmin}>
-          <button
-            type="submit"
-            className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
-          >
-            Log out
-          </button>
-        </form>
-      </div>
+    <main className="mx-auto flex min-h-svh w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:py-10">
+      <AdminHeader
+        activeSection="settings"
+        title="Event settings"
+        description="Manage event identity, sharing appearance, and the eligible draw pool."
+      />
 
-      <SettingsForm settings={settings} />
+      <div className="flex-1">
+        <SettingsForm settings={settings} />
+      </div>
+      <AppFooter className="mt-8" />
     </main>
   );
 }
