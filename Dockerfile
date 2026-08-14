@@ -3,7 +3,7 @@
 FROM node:22-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@11.8.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.21.0 --activate
 
 FROM base AS deps
 WORKDIR /app
@@ -36,9 +36,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Include production node_modules only, so the standalone server and the
-# migration/seed entrypoint can resolve drizzle-orm, pg, and dotenv without
-# relying on Next's tree-shaken standalone dependency tracing.
+# Include production node_modules only, so the migration entrypoint and
+# manually invoked seed tooling can resolve drizzle-orm, pg, and dotenv
+# without relying on Next's tree-shaken standalone dependency tracing.
 COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/src/db ./src/db
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
