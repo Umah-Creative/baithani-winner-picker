@@ -10,6 +10,8 @@ import type {
 
 const ACTIVE_ID = 1;
 const MAX_LOGO_BYTES = 5 * 1024 * 1024;
+const MIN_RANGE = 1;
+const MAX_RANGE = 10_000;
 const ALLOWED_LOGO_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -32,11 +34,14 @@ function validate(input: EventSettingsInput): EventSettingsFieldError {
   if (
     !Number.isInteger(input.minRange) ||
     !Number.isInteger(input.maxRange) ||
+    input.minRange < MIN_RANGE ||
+    input.maxRange > MAX_RANGE ||
     input.minRange >= input.maxRange
   ) {
     fieldErrors.minRange =
-      "Min must be less than max and both must be integers.";
-    fieldErrors.maxRange = "Max must be greater than min.";
+      "Min must be a whole number from 1 to 9,999 and lower than max.";
+    fieldErrors.maxRange =
+      "Max must be a whole number from 2 to 10,000 and greater than min.";
   }
 
   if (input.logoBytes && !input.logoMime) {

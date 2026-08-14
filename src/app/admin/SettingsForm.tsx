@@ -125,6 +125,9 @@ export function SettingsForm(props: SettingsFormProps) {
             type="number"
             name="minRange"
             required
+            min={1}
+            max={9999}
+            step={1}
             defaultValue={settings?.minRange ?? 1}
             aria-invalid={Boolean(state.fieldErrors?.minRange)}
             className="mt-2"
@@ -142,6 +145,9 @@ export function SettingsForm(props: SettingsFormProps) {
             type="number"
             name="maxRange"
             required
+            min={2}
+            max={10000}
+            step={1}
             defaultValue={settings?.maxRange ?? 1000}
             aria-invalid={Boolean(state.fieldErrors?.maxRange)}
             className="mt-2"
