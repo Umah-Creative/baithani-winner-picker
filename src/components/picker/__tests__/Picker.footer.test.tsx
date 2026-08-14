@@ -93,4 +93,32 @@ describe("Picker footer", () => {
     expect(screen.getByRole("contentinfo")).toBeTruthy();
     expect(screen.getByText("2 numbers drawn.")).toBeTruthy();
   });
+
+  it("keeps long descriptions readable without single-line truncation", () => {
+    const description =
+      "A longer event description that gives guests useful context without surrendering the entire winner stage to a wall of text.";
+
+    render(
+      <Picker
+        settings={{
+          title: "Baithani Night",
+          description,
+          accentColor: "#d076b4",
+          hasLogo: false,
+          logoAlt: "Baithani logo",
+          minRange: 1,
+          maxRange: 100,
+          excludedNumbers: [],
+          updatedAt: "2026-08-14T12:00:00.000Z",
+        }}
+      />
+    );
+
+    const descriptionElement = screen.getByText(description);
+    expect(descriptionElement.classList.contains("truncate")).toBe(false);
+    expect(descriptionElement.classList.contains("max-w-[68ch]")).toBe(true);
+    expect(descriptionElement.classList.contains("text-pretty")).toBe(true);
+    expect(descriptionElement.classList.contains("md:line-clamp-2")).toBe(true);
+    expect(descriptionElement.classList.contains("lg:text-base")).toBe(true);
+  });
 });

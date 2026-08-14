@@ -317,7 +317,12 @@ describe("SettingsForm previews and status", () => {
 
   it("updates picker and shared-link previews from one content source", async () => {
     const user = userEvent.setup();
-    render(<SettingsForm settings={settings} />);
+    render(
+      <SettingsForm
+        settings={settings}
+        shareUrl="https://winner-picker.baithani.example/"
+      />
+    );
 
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Friday draw");
@@ -333,7 +338,7 @@ describe("SettingsForm previews and status", () => {
     expect(within(preview).getByText("Multimedia Baithani")).toBeTruthy();
     expect(
       within(preview).getByText(
-        "Preview of the card shown when this link is shared."
+        "This preview has unsaved changes. The copied link still opens the last saved version."
       )
     ).toBeTruthy();
   });

@@ -23,7 +23,7 @@ import { parseExcludedNumbers } from "@/lib/event-settings.validation";
 
 import { ExcludedNumbersEditor } from "./ExcludedNumbersEditor";
 import { LogoUploadField } from "./LogoUploadField";
-import { SettingsPreview } from "./SettingsPreview";
+import { SettingsPreview, type SettingsShareState } from "./SettingsPreview";
 
 const initialState: ActionState = {};
 const COLOR_PRESETS = [
@@ -53,7 +53,10 @@ const COLOR_PRESETS = [
   },
 ] as const;
 
-type SettingsFormProps = { settings: EventSettingsView | null };
+type SettingsFormProps = {
+  settings: EventSettingsView | null;
+  shareUrl?: string;
+};
 
 function formatSavedAt(value: string): string {
   return new Intl.DateTimeFormat("en", {
@@ -93,7 +96,7 @@ function FieldMessage(props: { id: string; error?: string }) {
 }
 
 export function SettingsForm(props: SettingsFormProps) {
-  const { settings } = props;
+  const { settings, shareUrl } = props;
   const [accentColor, setAccentColor] = useState(
     settings?.accentColor ?? "#d076b4"
   );
@@ -182,6 +185,11 @@ export function SettingsForm(props: SettingsFormProps) {
     : savedAt
       ? `Settings saved · ${formatSavedAt(savedAt)}`
       : "Setup not saved yet";
+  const shareState: SettingsShareState = !savedAt
+    ? "setup"
+    : dirty
+      ? "draft"
+      : "saved";
 
   return (
     <form action={formAction} onChange={() => setDirty(true)} className="mt-6">
@@ -452,6 +460,8 @@ export function SettingsForm(props: SettingsFormProps) {
         </fieldset>
 
         <SettingsPreview
+          shareUrl={shareUrl}
+          shareState={shareState}
           title={title}
           description={description}
           accentColor={accentColor}
