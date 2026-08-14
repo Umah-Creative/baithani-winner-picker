@@ -2,7 +2,7 @@ CREATE TABLE "event_settings" (
 	"id" integer PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
 	"description" text DEFAULT '' NOT NULL,
-	"accent_color" text DEFAULT '#f0b429' NOT NULL,
+	"accent_color" text DEFAULT '#d076b4' NOT NULL,
 	"logo_bytes" "bytea",
 	"logo_mime" text,
 	"logo_alt" text,

@@ -1,6 +1,6 @@
 {
-  "id": "e39769f7-7df2-45b3-bee1-af3dbf0fb9b9",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "f283f68a-df1e-4c54-99bb-b2628511fc39",
+  "prevId": "e39769f7-7df2-45b3-bee1-af3dbf0fb9b9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -32,7 +32,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'#f0b429'"
+          "default": "'#d076b4'"
         },
         "logo_bytes": {
           "name": "logo_bytes",
@@ -72,12 +72,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'"
-        },
-        "og_image_url": {
-          "name": "og_image_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "updated_at": {
           "name": "updated_at",

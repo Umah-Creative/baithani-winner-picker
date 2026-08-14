@@ -15,12 +15,6 @@ if (!connectionString) {
 const pool = new Pool({ connectionString });
 const db = drizzle(pool);
 
-await migrate(db, { migrationsFolder: "drizzle/migrations" });
-
-await db.execute(
-  `INSERT INTO event_settings (id, title, description, accent_color, min_range, max_range, excluded_numbers)
-   VALUES (1, 'Doorprize HUT 50th Baithani 2025', 'Baithani''s Doorprize Picker', '#f0b429', 1, 1000, '{}')
-   ON CONFLICT (id) DO NOTHING`,
-);
+await migrate(db, { migrationsFolder: "src/db/migrations" });
 
 await pool.end();

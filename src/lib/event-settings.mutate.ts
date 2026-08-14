@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
-import { eventSettings } from "@/lib/schema";
+import { db } from "@/db/client";
+import { eventSettings } from "@/db/schema";
 import type {
   EventSettingsFieldError,
   EventSettingsInput,
@@ -26,7 +26,7 @@ function validate(input: EventSettingsInput): EventSettingsFieldError {
 
   if (!/^#[0-9a-fA-F]{6}$/.test(input.accentColor)) {
     fieldErrors.accentColor =
-      "Accent color must be a 6-digit hex value like #f0b429.";
+      "Accent color must be a 6-digit hex value like #d076b4.";
   }
 
   if (
@@ -34,7 +34,8 @@ function validate(input: EventSettingsInput): EventSettingsFieldError {
     !Number.isInteger(input.maxRange) ||
     input.minRange >= input.maxRange
   ) {
-    fieldErrors.minRange = "Min must be less than max and both must be integers.";
+    fieldErrors.minRange =
+      "Min must be less than max and both must be integers.";
     fieldErrors.maxRange = "Max must be greater than min.";
   }
 
@@ -50,7 +51,7 @@ function validate(input: EventSettingsInput): EventSettingsFieldError {
 }
 
 export async function saveEventSettings(
-  input: EventSettingsInput,
+  input: EventSettingsInput
 ): Promise<EventSettingsSaveResult> {
   const fieldErrors = validate(input);
 

@@ -16,7 +16,7 @@ export const eventSettings = pgTable("event_settings", {
   id: integer("id").primaryKey().notNull(),
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
-  accentColor: text("accent_color").notNull().default("#f0b429"),
+  accentColor: text("accent_color").notNull().default("#d076b4"),
   logoBytes: bytea("logo_bytes"),
   logoMime: text("logo_mime"),
   logoAlt: text("logo_alt"),

@@ -1,8 +1,8 @@
 import { cache } from "react";
 import { eq } from "drizzle-orm";
 
-import { db } from "@/lib/db";
-import { eventSettings } from "@/lib/schema";
+import { db } from "@/db/client";
+import { eventSettings } from "@/db/schema";
 import type { EventSettingsView } from "@/lib/event-settings.type";
 
 export const getEventSettings = cache(
@@ -27,5 +27,5 @@ export const getEventSettings = cache(
       maxRange: row.maxRange,
       excludedNumbers: row.excludedNumbers,
     };
-  },
+  }
 );
