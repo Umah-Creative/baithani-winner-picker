@@ -47,6 +47,17 @@ jobs:
       - name: Run TypeScript
         run: pnpm check-type
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
+      - name: Run tests
+        run: pnpm test
+
   build:
     name: Build
     runs-on: ubuntu-latest
