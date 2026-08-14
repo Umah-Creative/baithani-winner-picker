@@ -167,8 +167,23 @@ export function SettingsForm(props: SettingsFormProps) {
           name="excludedNumbers"
           defaultValue={settings?.excludedNumbers.join(", ") ?? ""}
           placeholder="13, 42, 99"
+          aria-invalid={Boolean(state.fieldErrors?.excludedNumbers)}
+          aria-describedby={
+            state.fieldErrors?.excludedNumbers
+              ? "excluded-numbers-error"
+              : undefined
+          }
           className="mt-2"
         />
+        {state.fieldErrors?.excludedNumbers ? (
+          <span
+            id="excluded-numbers-error"
+            role="alert"
+            className="mt-1 block text-xs text-destructive"
+          >
+            {state.fieldErrors.excludedNumbers}
+          </span>
+        ) : null}
       </label>
 
       {state.error ? (

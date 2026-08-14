@@ -18,6 +18,10 @@ export type AdminAuditRequestMetadata = {
   requestId: string | null;
 };
 
+type AuditRequestMetadataOptions = {
+  trustedProxy?: boolean;
+};
+
 export type AdminAuditEventInput = {
   action: AdminAuditAction;
   outcome: AdminAuditOutcome;
@@ -105,15 +109,17 @@ export function resolveLogoChange(
 }
 
 export function getAdminAuditRequestMetadata(
-  requestHeaders: Headers
+  requestHeaders: Headers,
+  options: AuditRequestMetadataOptions = {}
 ): AdminAuditRequestMetadata {
-  const forwardedFor = requestHeaders
-    .get("x-forwarded-for")
-    ?.split(",")[0]
-    ?.trim();
+  const forwardedFor = options.trustedProxy
+    ? requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim()
+    : undefined;
 
   return {
-    ipAddress: forwardedFor || requestHeaders.get("x-real-ip") || null,
+    ipAddress: options.trustedProxy
+      ? forwardedFor || requestHeaders.get("x-real-ip") || null
+      : null,
     userAgent: requestHeaders.get("user-agent"),
     acceptLanguage: requestHeaders.get("accept-language"),
     requestId:

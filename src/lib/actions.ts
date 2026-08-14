@@ -22,10 +22,10 @@ export type ActionState = {
   success?: boolean;
 };
 
-function recordAdminAudit(
+async function recordAdminAudit(
   input: Parameters<typeof writeCurrentAdminAuditLog>[0]
-): void {
-  void writeCurrentAdminAuditLog(input);
+): Promise<void> {
+  await writeCurrentAdminAuditLog(input);
 }
 
 export async function loginAdmin(
@@ -36,7 +36,7 @@ export async function loginAdmin(
   const expected = process.env.ADMIN_PASSWORD;
 
   if (!expected || password !== expected) {
-    recordAdminAudit({
+    await recordAdminAudit({
       action: "auth.login",
       outcome: "failure",
       actor: "admin",
@@ -46,7 +46,7 @@ export async function loginAdmin(
   }
 
   await createAdminSession();
-  recordAdminAudit({
+  await recordAdminAudit({
     action: "auth.login",
     outcome: "success",
     actor: "admin",
@@ -56,7 +56,7 @@ export async function loginAdmin(
 
 export async function logoutAdmin(): Promise<void> {
   await clearAdminSession();
-  recordAdminAudit({
+  await recordAdminAudit({
     action: "auth.logout",
     outcome: "success",
     actor: "admin",
@@ -121,7 +121,7 @@ export async function updateEventSettings(
   formData: FormData
 ): Promise<ActionState> {
   if (!(await isAdminAuthenticated())) {
-    recordAdminAudit({
+    await recordAdminAudit({
       action: "settings.update_failed",
       outcome: "denied",
       actor: "admin",
@@ -132,7 +132,7 @@ export async function updateEventSettings(
 
   const parsed = await parseFormData(formData);
   if (!parsed.ok) {
-    recordAdminAudit({
+    await recordAdminAudit({
       action: "settings.update_failed",
       outcome: "failure",
       actor: "admin",
@@ -147,7 +147,7 @@ export async function updateEventSettings(
   const result = await saveEventSettings(parsed.input);
 
   if (!result.ok) {
-    recordAdminAudit({
+    await recordAdminAudit({
       action: "settings.update_failed",
       outcome: "failure",
       actor: "admin",
@@ -162,7 +162,7 @@ export async function updateEventSettings(
     };
   }
 
-  recordAdminAudit({
+  await recordAdminAudit({
     action: "settings.update",
     outcome: "success",
     actor: "admin",
@@ -172,14 +172,14 @@ export async function updateEventSettings(
   });
 
   if (result.audit?.logoChange === "replace") {
-    recordAdminAudit({
+    await recordAdminAudit({
       action: "logo.replace",
       outcome: "success",
       actor: "admin",
       metadata: { before: result.audit.before, after: result.audit.after },
     });
   } else if (result.audit?.logoChange === "remove") {
-    recordAdminAudit({
+    await recordAdminAudit({
       action: "logo.remove",
       outcome: "success",
       actor: "admin",

@@ -13,6 +13,10 @@ import {
 
 export * from "./admin-audit.shared";
 
+function trustsProxyHeaders(): boolean {
+  return process.env.TRUST_PROXY_HEADERS === "true";
+}
+
 export async function writeAdminAuditLog(
   input: AdminAuditEventInput
 ): Promise<void> {
@@ -31,7 +35,9 @@ export async function writeCurrentAdminAuditLog(
     const requestHeaders = await headers();
     await writeAdminAuditLog({
       ...input,
-      request: getAdminAuditRequestMetadata(requestHeaders),
+      request: getAdminAuditRequestMetadata(requestHeaders, {
+        trustedProxy: trustsProxyHeaders(),
+      }),
     });
   } catch {
     // Request metadata must not prevent the primary server action.

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAdminAuditEvent,
+  getAdminAuditRequestMetadata,
   resolveLogoChange,
   sanitizeAuditMetadata,
 } from "../admin-audit.shared";
@@ -68,5 +69,27 @@ describe("buildAdminAuditEvent", () => {
         after: { title: "After" },
       },
     });
+  });
+});
+
+describe("getAdminAuditRequestMetadata", () => {
+  it("ignores forgeable forwarding IP headers until a trusted proxy boundary opts in", () => {
+    const requestHeaders = new Headers({
+      "x-forwarded-for": "203.0.113.8, 198.51.100.7",
+      "x-real-ip": "203.0.113.9",
+      "user-agent": "Mozilla/5.0",
+      "accept-language": "en-US",
+      "x-request-id": "req-123",
+    });
+
+    expect(getAdminAuditRequestMetadata(requestHeaders)).toEqual({
+      ipAddress: null,
+      userAgent: "Mozilla/5.0",
+      acceptLanguage: "en-US",
+      requestId: "req-123",
+    });
+    expect(
+      getAdminAuditRequestMetadata(requestHeaders, { trustedProxy: true })
+    ).toMatchObject({ ipAddress: "203.0.113.8" });
   });
 });
