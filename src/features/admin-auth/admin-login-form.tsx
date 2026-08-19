@@ -11,7 +11,8 @@ import type { LoginActionState } from "./admin-auth.type";
 
 const initialState: LoginActionState = { status: "idle" };
 
-export function LoginForm({ identity }: { identity: string }) {
+export function LoginForm(props: { identity: string }) {
+  const { identity } = props;
   const [state, formAction, pending] = useActionState(loginAdmin, initialState);
   const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -33,6 +34,7 @@ export function LoginForm({ identity }: { identity: string }) {
           <Input
             type={passwordVisible ? "text" : "password"}
             name="password"
+            maxLength={1_024}
             required
             autoFocus
             autoComplete="current-password"

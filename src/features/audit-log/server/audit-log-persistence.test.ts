@@ -9,8 +9,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/db/client", () => ({
   db: { insert: mocks.insert },
 }));
-vi.mock("./audit-request", () => ({
-  getCurrentAdminAuditRequestMetadata: mocks.request,
+vi.mock("@/shared/request-context/current-request-context", () => ({
+  getCurrentRequestContext: mocks.request,
 }));
 
 import { writeAdminAuditLog } from "./audit-log.service";

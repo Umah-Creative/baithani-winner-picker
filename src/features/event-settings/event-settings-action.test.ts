@@ -15,8 +15,8 @@ vi.mock("@/features/admin-auth/server/admin-session.service", () => ({
 vi.mock("@/features/audit-log/server/audit-log.service", () => ({
   writeAdminAuditLog: mocks.audit,
 }));
-vi.mock("@/features/audit-log/server/audit-request", () => ({
-  getSafeCurrentAdminAuditRequestMetadata: mocks.request,
+vi.mock("@/shared/request-context/current-request-context", () => ({
+  getSafeCurrentRequestContext: mocks.request,
 }));
 vi.mock("./server/event-settings-request", () => ({
   parseEventSettingsFormData: mocks.parse,

@@ -1,29 +1,27 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { writeAdminAuditLog } from "@/features/audit-log/server/audit-log.service";
-import { getAdminAuditRequestMetadata } from "@/features/audit-log/server/audit-request";
 import {
   clearAdminSession,
   createAdminSession,
+  isAdminAuthenticated,
 } from "@/features/admin-auth/server/admin-session.service";
 import {
+  checkLoginRateLimit,
   clearLoginFailures,
-  consumeLoginFailure,
   getLoginRateLimitKey,
+  recordLoginFailure,
 } from "@/features/admin-auth/server/admin-login-rate-limit";
+import { getSafeCurrentRequestContext } from "@/shared/request-context/current-request-context";
+import { constantTimeEqual } from "@/shared/security/constant-time";
 
 import type { LoginActionState } from "./admin-auth.type";
 
 async function getLoginRateLimitKeyForRequest(): Promise<string> {
-  try {
-    const requestHeaders = await headers();
-    return getLoginRateLimitKey(getAdminAuditRequestMetadata(requestHeaders));
-  } catch {
-    return "anonymous";
-  }
+  const request = await getSafeCurrentRequestContext();
+  return getLoginRateLimitKey(request.ipAddress);
 }
 
 export async function loginAdmin(
@@ -34,21 +32,53 @@ export async function loginAdmin(
   const expected = process.env.ADMIN_PASSWORD;
   const rateLimitKey = await getLoginRateLimitKeyForRequest();
 
-  if (!expected || password !== expected) {
-    if (consumeLoginFailure(rateLimitKey)) {
-      return { status: "error", error: "Invalid password." };
-    }
+  if (!expected) {
+    console.error("Admin login configuration is incomplete.");
+    return {
+      status: "error",
+      reason: "configuration",
+      error: "Admin login is unavailable.",
+    };
+  }
+
+  if (checkLoginRateLimit(rateLimitKey).blocked) {
+    return {
+      status: "error",
+      reason: "rate_limited",
+      error: "Too many login attempts. Try again later.",
+    };
+  }
+
+  if (password.length > 1_024 || !constantTimeEqual(password, expected)) {
+    const { lockoutStarted } = recordLoginFailure(rateLimitKey);
     await writeAdminAuditLog({
       action: "auth.login",
-      outcome: "failure",
+      outcome: lockoutStarted ? "denied" : "failure",
       actor: "admin",
-      metadata: { reason: "invalid_credentials" },
+      metadata: {
+        reason: lockoutStarted ? "rate_limited" : "invalid_credentials",
+      },
     });
-    return { status: "error", error: "Invalid password." };
+    return {
+      status: "error",
+      reason: lockoutStarted ? "rate_limited" : "invalid_credentials",
+      error: lockoutStarted
+        ? "Too many login attempts. Try again later."
+        : "Invalid password.",
+    };
   }
 
   clearLoginFailures(rateLimitKey);
-  await createAdminSession();
+  try {
+    await createAdminSession();
+  } catch {
+    console.error("Admin session configuration is invalid.");
+    return {
+      status: "error",
+      reason: "configuration",
+      error: "Admin login is unavailable.",
+    };
+  }
   await writeAdminAuditLog({
     action: "auth.login",
     outcome: "success",
@@ -58,11 +88,14 @@ export async function loginAdmin(
 }
 
 export async function logoutAdmin(): Promise<void> {
+  const authenticated = await isAdminAuthenticated();
   await clearAdminSession();
-  await writeAdminAuditLog({
-    action: "auth.logout",
-    outcome: "success",
-    actor: "admin",
-  });
+  if (authenticated) {
+    await writeAdminAuditLog({
+      action: "auth.logout",
+      outcome: "success",
+      actor: "admin",
+    });
+  }
   redirect("/admin/login");
 }

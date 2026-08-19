@@ -1,13 +1,10 @@
 import { sanitizeAuditMetadata } from "./audit-log-sanitizer";
-import type {
-  AdminAuditEvent,
-  AdminAuditRequestMetadata,
-  AdminAuditWriteInput,
-} from "./audit-log.type";
+import type { AdminAuditEvent, AdminAuditWriteInput } from "./audit-log.type";
+import type { RequestContext } from "@/shared/request-context/request-context.type";
 
 export function buildAdminAuditEvent(
   input: AdminAuditWriteInput,
-  request: AdminAuditRequestMetadata,
+  request: RequestContext,
   occurredAt = new Date()
 ): AdminAuditEvent {
   return {

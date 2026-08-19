@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { isAdminAuthenticated } from "@/features/admin-auth/server/admin-session.service";
 import { writeAdminAuditLog } from "@/features/audit-log/server/audit-log.service";
-import { getSafeCurrentAdminAuditRequestMetadata } from "@/features/audit-log/server/audit-request";
+import { getSafeCurrentRequestContext } from "@/shared/request-context/current-request-context";
 
 import type { EventSettingsActionState } from "./event-settings-action.type";
 import { saveEventSettings } from "./server/event-settings.command";
@@ -40,7 +40,7 @@ export async function updateEventSettings(
 
   const result = await saveEventSettings(parsed.input, {
     actor: "admin",
-    request: await getSafeCurrentAdminAuditRequestMetadata(),
+    request: await getSafeCurrentRequestContext(),
   });
   if (!result.ok) {
     await writeAdminAuditLog({

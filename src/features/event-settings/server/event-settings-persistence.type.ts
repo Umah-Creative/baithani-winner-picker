@@ -1,4 +1,4 @@
-import type { AdminAuditRequestMetadata } from "@/features/audit-log/audit-log.type";
+import type { RequestContext } from "@/shared/request-context/request-context.type";
 
 import type {
   EventSettingsFieldError,
@@ -20,7 +20,7 @@ export type EventSettingsPersistenceInput = {
 
 export type EventSettingsAuditContext = {
   actor: string;
-  request: AdminAuditRequestMetadata;
+  request: RequestContext;
 };
 
 export type EventSettingsAuditSnapshot = {
