@@ -191,7 +191,12 @@ describe("SettingsForm logo controls", () => {
       () => "blob:http://localhost:3000/replacement-logo"
     );
     const revokeObjectURL = vi.fn();
-    vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
+    const NativeURL = URL;
+    const TestURL = Object.assign(class extends NativeURL {}, {
+      createObjectURL,
+      revokeObjectURL,
+    });
+    vi.stubGlobal("URL", TestURL);
     const user = userEvent.setup();
     const view = render(<SettingsForm settings={settings} />);
 

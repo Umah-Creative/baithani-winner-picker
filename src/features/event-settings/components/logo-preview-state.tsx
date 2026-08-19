@@ -1,8 +1,9 @@
 import { ImagePlusIcon, Trash2Icon } from "lucide-react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 
-import { getSafeLogoPreviewUrl } from "./logo-preview-url";
+import { resolveSafeLogoPreviewUrl } from "../logo-preview-url.util";
 
 type LogoPreviewStateProps = {
   imageUrl?: string;
@@ -18,22 +19,20 @@ function formatFileSize(bytes: number): string {
 
 export function LogoPreviewState(props: LogoPreviewStateProps) {
   const { imageUrl, imageAlt, replacementFile, onReplace, onRemove } = props;
-  const safeImageUrl = getSafeLogoPreviewUrl(imageUrl);
+  const safeImageUrl = resolveSafeLogoPreviewUrl(imageUrl);
 
   return (
     <>
       <div className="flex min-h-28 w-full items-center justify-center rounded-lg bg-background/70 p-4">
         {safeImageUrl ? (
-          <>
-            {/* Hook-generated blob URLs and the same-origin logo endpoint are URL-allowlisted above. */}
-            {/* codeql[js/xss-through-dom] */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={safeImageUrl}
-              alt={imageAlt}
-              className="max-h-28 max-w-full object-contain"
-            />
-          </>
+          <Image
+            src={safeImageUrl}
+            alt={imageAlt}
+            width={224}
+            height={112}
+            unoptimized
+            className="max-h-28 max-w-full object-contain"
+          />
         ) : (
           <p className="text-sm text-muted-foreground">
             Logo preview unavailable

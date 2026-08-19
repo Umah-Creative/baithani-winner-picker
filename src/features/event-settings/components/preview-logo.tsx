@@ -1,3 +1,7 @@
+import Image from "next/image";
+
+import { resolveSafeLogoPreviewUrl } from "../logo-preview-url.util";
+
 type PreviewLogoProps = {
   logoUrl?: string;
   logoAlt: string;
@@ -5,12 +9,15 @@ type PreviewLogoProps = {
 
 export function PreviewLogo(props: PreviewLogoProps) {
   const { logoUrl, logoAlt } = props;
+  const safeLogoUrl = resolveSafeLogoPreviewUrl(logoUrl);
 
-  return logoUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={logoUrl}
+  return safeLogoUrl ? (
+    <Image
+      src={safeLogoUrl}
       alt={logoAlt}
+      width={144}
+      height={64}
+      unoptimized
       className="max-h-16 max-w-36 object-contain"
     />
   ) : (

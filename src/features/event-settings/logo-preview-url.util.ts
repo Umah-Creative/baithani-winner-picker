@@ -1,4 +1,4 @@
-export function getSafeLogoPreviewUrl(
+export function resolveSafeLogoPreviewUrl(
   value: string | undefined
 ): string | undefined {
   if (!value) return undefined;
