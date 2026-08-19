@@ -8,7 +8,10 @@ import { adminAuditLogs, eventSettings } from "@/db/schema";
 import {
   ACCEPTED_LOGO_MIME_TYPES,
   ACTIVE_EVENT_SETTINGS_ID,
+  MAX_EVENT_DESCRIPTION_LENGTH,
   MAX_EVENT_RANGE,
+  MAX_EVENT_TITLE_LENGTH,
+  MAX_LOGO_ALT_LENGTH,
   MAX_LOGO_BYTES,
   MIN_EVENT_RANGE,
 } from "../event-settings.constant";
@@ -25,6 +28,7 @@ import type {
   EventSettingsSaveResult,
 } from "./event-settings-persistence.type";
 import { toEventSettingsView } from "./event-settings-projection";
+import { logoSignatureMatchesMime } from "./logo-signature";
 
 const allowedLogoTypes = new Set<string>(ACCEPTED_LOGO_MIME_TYPES);
 
@@ -40,6 +44,15 @@ export function validateEventSettingsPersistenceInput(
     input.minRange < input.maxRange;
 
   if (!input.title) fieldErrors.title = "Title is required.";
+  if (input.title.length > MAX_EVENT_TITLE_LENGTH) {
+    fieldErrors.title = `Title must be ${MAX_EVENT_TITLE_LENGTH} characters or fewer.`;
+  }
+  if (input.description.length > MAX_EVENT_DESCRIPTION_LENGTH) {
+    fieldErrors.description = `Description must be ${MAX_EVENT_DESCRIPTION_LENGTH} characters or fewer.`;
+  }
+  if (input.logoAlt.length > MAX_LOGO_ALT_LENGTH) {
+    fieldErrors.logoAlt = `Logo alt text must be ${MAX_LOGO_ALT_LENGTH} characters or fewer.`;
+  }
   if (!/^#[0-9a-fA-F]{6}$/.test(input.accentColor)) {
     fieldErrors.accentColor =
       "Accent color must be a 6-digit hex value like #d076b4.";
@@ -63,6 +76,12 @@ export function validateEventSettingsPersistenceInput(
     fieldErrors.logo = "Logo must be PNG, JPEG, WebP, or GIF.";
   } else if (input.logoBytes && input.logoBytes.byteLength > MAX_LOGO_BYTES) {
     fieldErrors.logo = "Logo must be smaller than 5 MB.";
+  } else if (
+    input.logoBytes &&
+    input.logoMime &&
+    !logoSignatureMatchesMime(input.logoBytes, input.logoMime)
+  ) {
+    fieldErrors.logo = "Logo file content does not match its image type.";
   }
   return fieldErrors;
 }

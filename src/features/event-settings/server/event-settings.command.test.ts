@@ -42,7 +42,14 @@ vi.mock("@/db/schema", () => ({
 }));
 vi.mock("drizzle-orm", () => ({ eq: mocks.eq }));
 
-import { saveEventSettings } from "./event-settings.command";
+import {
+  saveEventSettings,
+  validateEventSettingsPersistenceInput,
+} from "./event-settings.command";
+
+const webpBytes = Buffer.from([
+  0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
+]);
 
 const input = {
   title: "Baithani Night",
@@ -130,13 +137,13 @@ describe("saveEventSettings", () => {
       row({ logoBytes: Buffer.from("old"), logoMime: "image/png" }),
     ]);
     mocks.settingsInsert.returning.mockResolvedValue([
-      row({ logoBytes: Buffer.from("new"), logoMime: "image/webp" }),
+      row({ logoBytes: webpBytes, logoMime: "image/webp" }),
     ]);
 
     await saveEventSettings(
       {
         ...input,
-        logoBytes: Buffer.from("new"),
+        logoBytes: webpBytes,
         logoMime: "image/webp",
         removeLogo: true,
       },
@@ -145,7 +152,7 @@ describe("saveEventSettings", () => {
 
     expect(mocks.settingsInsert.values).toHaveBeenCalledWith(
       expect.objectContaining({
-        logoBytes: Buffer.from("new"),
+        logoBytes: webpBytes,
         logoMime: "image/webp",
       })
     );
@@ -201,5 +208,44 @@ describe("saveEventSettings", () => {
       fieldErrors: { title: "Title is required." },
     });
     expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "image/png",
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    ],
+    ["image/jpeg", Buffer.from([0xff, 0xd8, 0xff, 0xdb])],
+    ["image/gif", Buffer.from("GIF89a")],
+    ["image/webp", webpBytes],
+  ])("accepts a valid %s file signature", (logoMime, logoBytes) => {
+    expect(
+      validateEventSettingsPersistenceInput({ ...input, logoMime, logoBytes })
+    ).not.toHaveProperty("logo");
+  });
+
+  it("rejects an upload whose bytes do not match its claimed MIME type", () => {
+    expect(
+      validateEventSettingsPersistenceInput({
+        ...input,
+        logoMime: "image/png",
+        logoBytes: Buffer.from("not really a png"),
+      })
+    ).toEqual({ logo: "Logo file content does not match its image type." });
+  });
+
+  it("rejects oversized event text fields", () => {
+    expect(
+      validateEventSettingsPersistenceInput({
+        ...input,
+        title: "t".repeat(161),
+        description: "d".repeat(501),
+        logoAlt: "a".repeat(161),
+      })
+    ).toEqual({
+      title: "Title must be 160 characters or fewer.",
+      description: "Description must be 500 characters or fewer.",
+      logoAlt: "Logo alt text must be 160 characters or fewer.",
+    });
   });
 });

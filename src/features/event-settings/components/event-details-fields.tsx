@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 import type { EventSettingsFieldError } from "../event-settings.type";
+import {
+  MAX_EVENT_DESCRIPTION_LENGTH,
+  MAX_EVENT_TITLE_LENGTH,
+} from "../event-settings.constant";
 import { FieldMessage } from "./field-message";
 
 type EventDetailsFieldsProps = {
@@ -43,6 +47,7 @@ export function EventDetailsFields(props: EventDetailsFieldsProps) {
             type="text"
             name="title"
             required
+            maxLength={MAX_EVENT_TITLE_LENGTH}
             value={title}
             onChange={(event) => onTitleChange(event.target.value)}
             aria-invalid={Boolean(fieldErrors?.title)}
@@ -59,6 +64,7 @@ export function EventDetailsFields(props: EventDetailsFieldsProps) {
           <Textarea
             id="description"
             name="description"
+            maxLength={MAX_EVENT_DESCRIPTION_LENGTH}
             value={description}
             onChange={(event) => onDescriptionChange(event.target.value)}
             aria-invalid={Boolean(fieldErrors?.description)}

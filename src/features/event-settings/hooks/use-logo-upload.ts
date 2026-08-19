@@ -140,10 +140,12 @@ export function useLogoUpload(options: UseLogoUploadOptions) {
 
   function markForRemoval() {
     resetNativeInput();
+    setClientError(undefined);
     transition(hasLogo ? { kind: "marked-removal" } : { kind: "empty" });
   }
 
   function undoRemoval() {
+    setClientError(undefined);
     transition(hasLogo ? { kind: "existing" } : { kind: "empty" });
   }
 

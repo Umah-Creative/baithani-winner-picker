@@ -9,6 +9,7 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { MAX_LOGO_ALT_LENGTH } from "../event-settings.constant";
 
 import { COLOR_PRESETS } from "../appearance.constant";
 import { DEFAULT_ACCENT_COLOR } from "../event-settings.constant";
@@ -140,7 +141,7 @@ export function AppearanceFields(props: AppearanceFieldsProps) {
         />
 
         {logoVisible ? (
-          <Field>
+          <Field data-invalid={Boolean(fieldErrors?.logoAlt)}>
             <FieldLabel htmlFor="logoAlt">Logo alt text</FieldLabel>
             <FieldDescription id="logo-alt-description">
               Describe the logo for screen-reader users.
@@ -149,9 +150,11 @@ export function AppearanceFields(props: AppearanceFieldsProps) {
               id="logoAlt"
               type="text"
               name="logoAlt"
+              maxLength={MAX_LOGO_ALT_LENGTH}
               value={logoAlt}
               onChange={(event) => onLogoAltChange(event.target.value)}
-              aria-describedby="logo-alt-description logo-alt-warning"
+              aria-invalid={Boolean(fieldErrors?.logoAlt)}
+              aria-describedby="logo-alt-description logo-alt-warning logo-alt-error"
               className="min-h-11"
             />
             {logoAlt.trim() === "" ? (
@@ -159,6 +162,7 @@ export function AppearanceFields(props: AppearanceFieldsProps) {
                 Blank alt text is only appropriate when this logo is decorative.
               </p>
             ) : null}
+            <FieldMessage id="logo-alt-error" error={fieldErrors?.logoAlt} />
           </Field>
         ) : null}
       </FieldGroup>

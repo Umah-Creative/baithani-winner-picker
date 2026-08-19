@@ -8,7 +8,8 @@ import { useLogoUpload } from "./use-logo-upload";
 const onDirty = vi.fn();
 const onVisualChange = vi.fn();
 
-function LogoUploadHarness({ hasLogo = true }: { hasLogo?: boolean }) {
+function LogoUploadHarness(props: { hasLogo?: boolean }) {
+  const { hasLogo = true } = props;
   const {
     fileInputRef,
     onInputChange,
@@ -17,6 +18,7 @@ function LogoUploadHarness({ hasLogo = true }: { hasLogo?: boolean }) {
     markForRemoval,
     undoRemoval,
     onDrop,
+    clientError,
   } = useLogoUpload({
     hasLogo,
     existingLogoAlt: "Baithani mark",
@@ -35,6 +37,7 @@ function LogoUploadHarness({ hasLogo = true }: { hasLogo?: boolean }) {
       />
       <p data-testid="state">{state.kind}</p>
       <p data-testid="image-url">{imageUrl}</p>
+      <p data-testid="client-error">{clientError}</p>
       <button type="button" onClick={markForRemoval}>
         Remove
       </button>
@@ -130,5 +133,26 @@ describe("useLogoUpload", () => {
 
     expect(screen.getByTestId("state").textContent).toBe("existing");
     expect(onDirty).not.toHaveBeenCalled();
+  });
+
+  it("clears stale client errors when the user removes or restores the logo", () => {
+    render(<LogoUploadHarness />);
+    fireEvent.change(screen.getByLabelText("Logo"), {
+      target: {
+        files: [new File(["text"], "notes.txt", { type: "text/plain" })],
+      },
+    });
+    expect(screen.getByTestId("client-error").textContent).toContain("PNG");
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(screen.getByTestId("client-error").textContent).toBe("");
+
+    fireEvent.change(screen.getByLabelText("Logo"), {
+      target: {
+        files: [new File(["text"], "notes.txt", { type: "text/plain" })],
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(screen.getByTestId("client-error").textContent).toBe("");
   });
 });

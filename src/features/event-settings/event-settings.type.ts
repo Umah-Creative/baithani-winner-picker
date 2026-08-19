@@ -14,6 +14,7 @@ export type EventSettingsFieldError = {
   title?: string;
   description?: string;
   accentColor?: string;
+  logoAlt?: string;
   minRange?: string;
   maxRange?: string;
   excludedNumbers?: string;
