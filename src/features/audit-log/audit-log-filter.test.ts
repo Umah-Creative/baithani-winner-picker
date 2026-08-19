@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { clampAdminLogPage, parseAdminLogFilters } from "./audit-log-filter";
+import {
+  clampAdminLogPage,
+  parseAdminLogFilters,
+  serializeAdminLogFilters,
+} from "./audit-log-filter";
 
 describe("parseAdminLogFilters", () => {
   it("normalizes log filters and keeps 50 rows per page", () => {
@@ -12,6 +16,7 @@ describe("parseAdminLogFilters", () => {
         to: "2026-08-14",
         ip: "203.0.113.8",
         requestId: "req-123",
+        tz: "Asia/Makassar",
         page: "3",
       })
     ).toEqual({
@@ -21,6 +26,7 @@ describe("parseAdminLogFilters", () => {
       to: "2026-08-14",
       ip: "203.0.113.8",
       requestId: "req-123",
+      tz: "Asia/Makassar",
       page: 3,
       limit: 50,
       offset: 100,
@@ -41,6 +47,13 @@ describe("parseAdminLogFilters", () => {
 
   it("rejects impossible calendar dates", () => {
     expect(parseAdminLogFilters({ from: "2026-02-31" }).from).toBeUndefined();
+  });
+
+  it("drops invalid timezones and preserves a valid timezone when serializing", () => {
+    expect(parseAdminLogFilters({ tz: "Not/A_Timezone" }).tz).toBeUndefined();
+    expect(
+      serializeAdminLogFilters(parseAdminLogFilters({ tz: "Asia/Makassar" }))
+    ).toBe("tz=Asia%2FMakassar");
   });
 
   it("clamps requested pages after the matching event count is known", () => {

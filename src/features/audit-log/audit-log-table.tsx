@@ -1,4 +1,4 @@
-import type { AdminAuditLogPage } from "./server/audit-log.query";
+import type { AdminAuditLogPage } from "./audit-log-view.type";
 import { serializeAdminLogFilters } from "./audit-log-filter";
 import { AuditLogEntry } from "./components/audit-log-entry";
 import { LogFilters } from "./components/audit-log-filters";

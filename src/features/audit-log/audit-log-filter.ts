@@ -3,20 +3,11 @@ import {
   ADMIN_AUDIT_OUTCOMES,
 } from "./audit-log.constant";
 import type { AdminAuditAction, AdminAuditOutcome } from "./audit-log.type";
+import type { AdminLogFilters } from "./audit-log-view.type";
+import { isValidTimeZone } from "./audit-log-time-zone";
+import { REQUEST_METADATA_LIMITS } from "@/shared/request-context/request-context.constant";
 
 type SearchParam = string | string[] | undefined;
-
-export type AdminLogFilters = {
-  action?: AdminAuditAction;
-  outcome?: AdminAuditOutcome;
-  from?: string;
-  to?: string;
-  ip?: string;
-  requestId?: string;
-  page: number;
-  limit: 50;
-  offset: number;
-};
 
 function firstValue(value: SearchParam): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -43,6 +34,7 @@ export function parseAdminLogFilters(
     Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const from = validDate(firstValue(input.from));
   const to = validDate(firstValue(input.to));
+  const requestedTimeZone = firstValue(input.tz)?.trim();
 
   return {
     action: ADMIN_AUDIT_ACTIONS.includes(action as AdminAuditAction)
@@ -53,8 +45,15 @@ export function parseAdminLogFilters(
       : undefined,
     from: from && (!to || from <= to) ? from : undefined,
     to: from && to && from > to ? undefined : to,
-    ip: firstValue(input.ip)?.trim() || undefined,
-    requestId: firstValue(input.requestId)?.trim() || undefined,
+    ip:
+      firstValue(input.ip)
+        ?.trim()
+        .slice(0, REQUEST_METADATA_LIMITS.ipAddress) || undefined,
+    requestId:
+      firstValue(input.requestId)
+        ?.trim()
+        .slice(0, REQUEST_METADATA_LIMITS.requestId) || undefined,
+    tz: isValidTimeZone(requestedTimeZone) ? requestedTimeZone : undefined,
     page,
     limit: 50,
     offset: (page - 1) * 50,
@@ -78,6 +77,7 @@ export function serializeAdminLogFilters(filters: AdminLogFilters): string {
   if (filters.to) params.set("to", filters.to);
   if (filters.ip) params.set("ip", filters.ip);
   if (filters.requestId) params.set("requestId", filters.requestId);
+  if (filters.tz) params.set("tz", filters.tz);
   if (filters.page > 1) params.set("page", String(filters.page));
   return params.toString();
 }

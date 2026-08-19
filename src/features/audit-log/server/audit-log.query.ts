@@ -5,38 +5,27 @@ import { and, count, desc, eq, gte, ilike, lt } from "drizzle-orm";
 import { db } from "@/db/client";
 import { adminAuditLogs } from "@/db/schema";
 
-import {
-  clampAdminLogPage,
-  parseAdminLogFilters,
-  type AdminLogFilters,
-} from "../audit-log-filter";
+import { clampAdminLogPage, parseAdminLogFilters } from "../audit-log-filter";
 import { sanitizeAuditMetadata } from "../audit-log-sanitizer";
+import { localDateBoundaryToUtc } from "../audit-log-time-zone";
 import type { AdminAuditMetadata } from "../audit-log.type";
-
-export type AdminAuditLogRow = {
-  id: number;
-  action: string;
-  outcome: string;
-  actor: string;
-  occurredAt: string;
-  ipAddress: string | null;
-  userAgent: string | null;
-  acceptLanguage: string | null;
-  requestId: string | null;
-  metadata: AdminAuditMetadata;
-};
-
-export type AdminAuditLogPage = {
-  rows: AdminAuditLogRow[];
-  total: number;
-  totalPages: number;
-  filters: AdminLogFilters;
-};
+import type { AdminAuditLogPage } from "../audit-log-view.type";
 
 function nextDay(date: string): Date {
   const value = new Date(`${date}T00:00:00.000Z`);
   value.setUTCDate(value.getUTCDate() + 1);
   return value;
+}
+
+function dateBoundary(
+  date: string,
+  timeZone: string | undefined,
+  next: boolean
+) {
+  if (!timeZone) {
+    return next ? nextDay(date) : new Date(`${date}T00:00:00.000Z`);
+  }
+  return localDateBoundaryToUtc(date, timeZone, next);
 }
 
 export async function getAdminAuditLogPage(
@@ -53,11 +42,14 @@ export async function getAdminAuditLogPage(
     requestedFilters.from
       ? gte(
           adminAuditLogs.occurredAt,
-          new Date(`${requestedFilters.from}T00:00:00.000Z`)
+          dateBoundary(requestedFilters.from, requestedFilters.tz, false)!
         )
       : undefined,
     requestedFilters.to
-      ? lt(adminAuditLogs.occurredAt, nextDay(requestedFilters.to))
+      ? lt(
+          adminAuditLogs.occurredAt,
+          dateBoundary(requestedFilters.to, requestedFilters.tz, true)!
+        )
       : undefined,
     requestedFilters.ip
       ? ilike(adminAuditLogs.ipAddress, `%${requestedFilters.ip}%`)

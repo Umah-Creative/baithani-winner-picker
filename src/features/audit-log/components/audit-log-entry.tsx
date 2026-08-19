@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 
 import { formatAuditAction, formatAuditOutcome } from "../audit-log-labels";
-import { formatAuditOccurredAt } from "../audit-log-value";
-import type { AdminAuditLogRow } from "../server/audit-log.query";
+import type { AdminAuditLogRow } from "../audit-log-view.type";
 import { AuditLogDetails } from "./audit-log-details";
+import { AuditLogTimestamp } from "./audit-log-timestamp";
 
 function outcomeVariant(
   outcome: string
@@ -29,7 +29,7 @@ export function AuditLogEntry(props: { row: AdminAuditLogRow }) {
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            {formatAuditOccurredAt(row.occurredAt)} · {row.actor}
+            <AuditLogTimestamp occurredAt={row.occurredAt} /> · {row.actor}
           </p>
         </div>
         {row.ipAddress || row.requestId ? (

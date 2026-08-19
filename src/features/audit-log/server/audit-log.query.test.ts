@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => {
       userAgent: "Mozilla/5.0",
       acceptLanguage: "en-US",
       requestId: "req-123",
+      tz: "Asia/Makassar",
       metadata: { before: { title: "Old" }, after: { title: "New" } },
     },
   ]);
@@ -113,6 +114,7 @@ describe("getAdminAuditLogPage", () => {
       to: "2026-08-14",
       ip: "203.0.113.8",
       requestId: "req-123",
+      tz: "Asia/Makassar",
       page: "2",
     });
 
@@ -142,10 +144,10 @@ describe("getAdminAuditLogPage", () => {
       expect.objectContaining({ type: "ilike", value: "%req-123%" }),
     ]);
     expect(countConditions.conditions[2]?.value).toEqual(
-      new Date("2026-08-01T00:00:00.000Z")
+      new Date("2026-07-31T16:00:00.000Z")
     );
     expect(countConditions.conditions[3]?.value).toEqual(
-      new Date("2026-08-15T00:00:00.000Z")
+      new Date("2026-08-14T16:00:00.000Z")
     );
     expect(rowConditions).toBe(countConditions);
     expect(page.rows).toHaveLength(1);

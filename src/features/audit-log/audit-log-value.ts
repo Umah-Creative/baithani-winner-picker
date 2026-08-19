@@ -18,10 +18,3 @@ export function formatAuditValue(value: unknown): string {
   if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
 }
-
-export function formatAuditOccurredAt(value: string): string {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "medium",
-  }).format(new Date(value));
-}

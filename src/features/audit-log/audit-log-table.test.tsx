@@ -3,7 +3,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { AdminAuditLogPage } from "./server/audit-log.query";
+import type { AdminAuditLogPage } from "./audit-log-view.type";
 
 import { LogsTable } from "./audit-log-table";
 import { serializeLogFilterDate } from "./audit-log-date";
@@ -88,6 +88,7 @@ describe("LogsTable", () => {
             to: "2026-08-14",
             ip: "203.0.113",
             requestId: "req-12",
+            tz: "Asia/Makassar",
           },
         }}
       />
@@ -95,7 +96,11 @@ describe("LogsTable", () => {
 
     expect(
       screen.getByRole("link", { name: "Reset" }).getAttribute("href")
-    ).toBe("/admin/logs");
+    ).toBe("/admin/logs?tz=Asia%2FMakassar");
+    expect(
+      document.querySelector<HTMLInputElement>('input[name="tz"]')?.value
+    ).toBe("Asia/Makassar");
+    expect(screen.getByText(/Dates use Asia\/Makassar/)).toBeTruthy();
     expect(screen.getByLabelText("Active filters")).toBeTruthy();
     expect(screen.getByLabelText<HTMLInputElement>("IP address").value).toBe(
       "203.0.113"

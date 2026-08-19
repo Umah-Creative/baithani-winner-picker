@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { serializeAdminLogFilters } from "../audit-log-filter";
-import type { AdminAuditLogPage } from "../server/audit-log.query";
+import type { AdminAuditLogPage } from "../audit-log-view.type";
 
 function pageHref(page: AdminAuditLogPage, nextPage: number): string {
   const query = serializeAdminLogFilters({
