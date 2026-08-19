@@ -33,7 +33,7 @@ The `stacks/REACT_NEXT_TANSTACK_QUERY.md` pack is not adopted because this proje
 - Path alias: `@/*` -> `./src/*`
 - Persistence: Postgres via Drizzle ORM; `event_settings` and `admin_audit_logs` tables
 - Admin auth: `ADMIN_PASSWORD` env + `jose`-signed cookie
-- Data access lives in server components and server actions; presentational components stay transport-free
+- App Router boundaries authenticate, load data, and compose feature entrypoints; server-only feature queries, commands, and services own data access
 - Feature-local code stays feature-local until reuse crosses feature boundaries
 - Application features live under `src/features`; shared brand and site-URL policy live under explicitly named `src/shared` modules
 - Project-authored source and test filenames use kebab-case; framework, generated, asset, tooling, and governance contracts keep their required names
@@ -41,7 +41,7 @@ The `stacks/REACT_NEXT_TANSTACK_QUERY.md` pack is not adopted because this proje
 ## Verification Commands
 
 - `pnpm test`
-- `pnpm format:check`
+- `pnpm prettier`
 - `pnpm lint`
 - `pnpm check-type`
 - `pnpm build`
