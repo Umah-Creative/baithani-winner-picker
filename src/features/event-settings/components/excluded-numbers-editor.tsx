@@ -11,11 +11,9 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  sanitizeNumberListInput,
-  useExcludedNumbersEditor,
-} from "../hooks/use-excluded-numbers-editor";
 import { MAX_EVENT_RANGE, MIN_EVENT_RANGE } from "../event-settings.constant";
+import { sanitizeExcludedNumbersInput } from "../excluded-numbers.util";
+import { useExcludedNumbersEditor } from "../hooks/use-excluded-numbers-editor";
 
 type ExcludedNumbersEditorProps = {
   minRange: number;
@@ -114,7 +112,9 @@ export function ExcludedNumbersEditor(props: ExcludedNumbersEditorProps) {
             value={editor.bulkDraft}
             disabled={pending}
             onChange={(event) => {
-              editor.setBulkDraft(sanitizeNumberListInput(event.target.value));
+              editor.setBulkDraft(
+                sanitizeExcludedNumbersInput(event.target.value)
+              );
               editor.clearError();
             }}
             placeholder={"13, 42, 99\n105"}

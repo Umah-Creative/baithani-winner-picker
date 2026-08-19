@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { MAX_EVENT_RANGE, MIN_EVENT_RANGE } from "../event-settings.constant";
+import { sanitizeExcludedNumbersInput } from "../excluded-numbers.util";
 import { parseExcludedNumbers } from "../event-settings.validation";
 
 type ExcludedNumbersOptions = {
@@ -13,10 +14,6 @@ type ExcludedNumbersOptions = {
   onNumbersChange: (numbers: number[]) => void;
   onDirty: () => void;
 };
-
-export function sanitizeNumberListInput(value: string): string {
-  return value.replace(/[^\d,\s]/g, "");
-}
 
 export function useExcludedNumbersEditor(options: ExcludedNumbersOptions) {
   const { minRange, maxRange, serverError, numbers, onNumbersChange, onDirty } =
@@ -57,7 +54,7 @@ export function useExcludedNumbersEditor(options: ExcludedNumbersOptions) {
     }
 
     const result = parseExcludedNumbers(
-      sanitizeNumberListInput(raw),
+      sanitizeExcludedNumbersInput(raw),
       minRange,
       maxRange
     );
@@ -95,7 +92,7 @@ export function useExcludedNumbersEditor(options: ExcludedNumbersOptions) {
     addDraft: () => addNumbers(draft, () => setDraft("")),
     addBulkDraft: () => addNumbers(bulkDraft, () => setBulkDraft("")),
     addPasted: (value: string) =>
-      addNumbers(sanitizeNumberListInput(value), () => setDraft("")),
+      addNumbers(sanitizeExcludedNumbersInput(value), () => setDraft("")),
     removeNumber,
   };
 }
