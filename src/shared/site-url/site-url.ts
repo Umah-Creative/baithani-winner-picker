@@ -1,9 +1,7 @@
 export type SiteUrlInput = {
   configuredUrl?: string;
+  portlessUrl?: string;
   nodeEnv?: string;
-  forwardedHost?: string | null;
-  host?: string | null;
-  forwardedProtocol?: string | null;
 };
 
 function parseHttpUrl(value: string): URL | undefined {
@@ -26,16 +24,13 @@ export function resolveSiteUrlValue(input: SiteUrlInput): URL | undefined {
   }
 
   if (input.nodeEnv === "development") {
+    const portless = input.portlessUrl?.trim();
+    if (portless) {
+      const parsed = parseHttpUrl(portless);
+      if (parsed) return parsed;
+    }
     return new URL("http://localhost:3000");
   }
 
-  const host = input.forwardedHost ?? input.host;
-  if (!host || /[\s/\\]/.test(host)) return undefined;
-
-  const protocol =
-    input.forwardedProtocol === "http" || input.forwardedProtocol === "https"
-      ? input.forwardedProtocol
-      : "https";
-
-  return parseHttpUrl(`${protocol}://${host}`);
+  return undefined;
 }

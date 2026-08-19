@@ -8,7 +8,6 @@ describe("resolveSiteUrlValue", () => {
       resolveSiteUrlValue({
         configuredUrl: "https://picker.baithani.example/admin",
         nodeEnv: "production",
-        host: "ignored.example",
       })?.toString()
     ).toBe("https://picker.baithani.example/");
   });
@@ -20,19 +19,20 @@ describe("resolveSiteUrlValue", () => {
     expect(resolveSiteUrlValue({ nodeEnv: "production" })).toBeUndefined();
   });
 
-  it("falls back to the validated request origin in production", () => {
+  it("uses PORTLESS_URL before localhost in development", () => {
     expect(
       resolveSiteUrlValue({
-        configuredUrl: "javascript:alert(1)",
-        nodeEnv: "production",
-        forwardedHost: "picker.baithani.example",
-        forwardedProtocol: "https",
+        portlessUrl: "http://winner-picker.localhost:1355/admin",
+        nodeEnv: "development",
       })?.toString()
-    ).toBe("https://picker.baithani.example/");
+    ).toBe("http://winner-picker.localhost:1355/");
+  });
+
+  it("never derives a production origin from request headers", () => {
     expect(
       resolveSiteUrlValue({
         nodeEnv: "production",
-        host: "bad.example/path",
+        portlessUrl: "https://ignored.example",
       })
     ).toBeUndefined();
   });
