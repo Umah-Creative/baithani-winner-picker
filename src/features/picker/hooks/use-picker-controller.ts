@@ -1,22 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useReducedMotion } from "motion/react";
 
 import type { EventSettingsView } from "@/features/event-settings/event-settings.type";
 
-import {
-  NEXT_DRAW_DELAY_MS,
-  PICKER_STORAGE_KEY,
-  REVEAL_DURATION_MS,
-} from "../picker.constant";
-import { getRangeError } from "../picker-range";
+import { PICKER_STORAGE_KEY, REVEAL_DURATION_MS } from "../picker.constant";
 import { useCandidatePool } from "./use-candidate-pool";
 import {
   usePickerAudio,
   type PickerAudioEngineFactory,
 } from "./use-picker-audio";
+import { usePickerKeyboardShortcut } from "./use-picker-keyboard-shortcut";
+import { usePickerRange } from "./use-picker-range";
 import { usePickerSpin } from "./use-picker-spin";
+import { usePickerStageTiming } from "./use-picker-stage-timing";
 
 type PickerControllerOptions = {
   audioEngineFactory?: PickerAudioEngineFactory;
@@ -26,15 +24,16 @@ export function usePickerController(
   settings: EventSettingsView,
   options: PickerControllerOptions = {}
 ) {
-  const [minValue, setMinValue] = useState(String(settings.minRange));
-  const [maxValue, setMaxValue] = useState(String(settings.maxRange));
-  const [nextDrawReady, setNextDrawReady] = useState(true);
+  const { minValue, maxValue, setMinValue, setMaxValue, rangeError, min, max } =
+    usePickerRange(settings.minRange, settings.maxRange);
   const [newSessionOpen, setNewSessionOpen] = useState(false);
-  const nextDrawTimerRef = useRef<number | null>(null);
   const reduceMotion = Boolean(useReducedMotion());
-  const rangeError = getRangeError(minValue, maxValue);
-  const min = rangeError ? 1 : Number(minValue);
-  const max = rangeError ? 0 : Number(maxValue);
+  const {
+    nextDrawReady,
+    clearNextDrawTimer,
+    prepareNextDraw,
+    markNextDrawReady,
+  } = usePickerStageTiming(reduceMotion);
   const { candidates, drawnNumbers, drawnCount, draw, undoLast, reset } =
     useCandidatePool({
       min,
@@ -56,32 +55,20 @@ export function usePickerController(
   const exhausted = rangeError === null && candidates.length === 0;
   const canStartNewSession = exhausted && drawnCount > 0;
 
-  const clearNextDrawTimer = useCallback(() => {
-    if (nextDrawTimerRef.current !== null) {
-      window.clearTimeout(nextDrawTimerRef.current);
-      nextDrawTimerRef.current = null;
-    }
-  }, []);
-
-  const prepareNextDraw = useCallback(() => {
-    clearNextDrawTimer();
-    setNextDrawReady(false);
-    nextDrawTimerRef.current = window.setTimeout(
-      () => {
-        setNextDrawReady(true);
-        nextDrawTimerRef.current = null;
-      },
-      reduceMotion ? 0 : NEXT_DRAW_DELAY_MS
-    );
-  }, [clearNextDrawTimer, reduceMotion]);
-
   const handleStart = useCallback(() => {
     if (rangeError || exhausted) return;
 
     clearNextDrawTimer();
-    setNextDrawReady(true);
+    markNextDrawReady();
     if (start()) audio.startDraw();
-  }, [audio, clearNextDrawTimer, exhausted, rangeError, start]);
+  }, [
+    audio,
+    clearNextDrawTimer,
+    exhausted,
+    markNextDrawReady,
+    rangeError,
+    start,
+  ]);
 
   const handleReveal = useCallback(() => {
     const revealing = reveal((winner) => {
@@ -117,60 +104,40 @@ export function usePickerController(
     clearNextDrawTimer();
     audio.stopAll();
     resetStage();
-    setNextDrawReady(true);
-  }, [audio, clearNextDrawTimer, resetStage]);
+    markNextDrawReady();
+  }, [audio, clearNextDrawTimer, markNextDrawReady, resetStage]);
 
   const handleMinChange = useCallback(
     (value: string) => {
       resetForRangeChange();
       setMinValue(value);
     },
-    [resetForRangeChange]
+    [resetForRangeChange, setMinValue]
   );
   const handleMaxChange = useCallback(
     (value: string) => {
       resetForRangeChange();
       setMaxValue(value);
     },
-    [resetForRangeChange]
+    [resetForRangeChange, setMaxValue]
   );
   const handleUndoLast = useCallback(() => {
     clearNextDrawTimer();
     audio.stopAll();
     undoLast();
     resetStage();
-    setNextDrawReady(true);
-  }, [audio, clearNextDrawTimer, resetStage, undoLast]);
+    markNextDrawReady();
+  }, [audio, clearNextDrawTimer, markNextDrawReady, resetStage, undoLast]);
   const handleNewSession = useCallback(() => {
     clearNextDrawTimer();
     audio.stopAll();
     reset();
     resetStage();
-    setNextDrawReady(true);
+    markNextDrawReady();
     setNewSessionOpen(false);
-  }, [audio, clearNextDrawTimer, reset, resetStage]);
+  }, [audio, clearNextDrawTimer, markNextDrawReady, reset, resetStage]);
 
-  useEffect(() => clearNextDrawTimer, [clearNextDrawTimer]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space" || event.repeat) return;
-      const target = event.target as HTMLElement | null;
-      if (
-        target?.tagName === "INPUT" ||
-        target?.tagName === "BUTTON" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable
-      ) {
-        return;
-      }
-      event.preventDefault();
-      handlePrimaryAction();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handlePrimaryAction]);
+  usePickerKeyboardShortcut(handlePrimaryAction);
 
   const primaryLabel =
     state.status === "spinning"
