@@ -2,9 +2,9 @@
 
 import { Input } from "@/components/ui/input";
 import {
-  MAX_EVENT_RANGE,
-  MIN_EVENT_RANGE,
-} from "@/features/event-settings/event-settings.constant";
+  MAX_DRAW_NUMBER,
+  MIN_DRAW_NUMBER,
+} from "@/shared/draw-pool/draw-pool.constant";
 
 type RangeControlsProps = {
   min: string;
@@ -29,7 +29,7 @@ export function RangeControls(props: RangeControlsProps) {
             variant="range"
             type="number"
             inputMode="numeric"
-            min={MIN_EVENT_RANGE}
+            min={MIN_DRAW_NUMBER}
             max={9999}
             step={1}
             value={min}
@@ -51,7 +51,7 @@ export function RangeControls(props: RangeControlsProps) {
             type="number"
             inputMode="numeric"
             min={2}
-            max={MAX_EVENT_RANGE}
+            max={MAX_DRAW_NUMBER}
             step={1}
             value={max}
             disabled={disabled}

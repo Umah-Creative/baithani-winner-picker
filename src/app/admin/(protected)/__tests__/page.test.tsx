@@ -18,8 +18,11 @@ vi.mock("@/features/event-settings/server/event-settings.query", () => ({
 vi.mock("@/shared/site-url/resolve-site-url.server", () => ({
   resolveSiteUrl: mocks.resolveSiteUrl,
 }));
-vi.mock("@/components/layout/admin-header", () => ({
-  AdminHeader: () => <header>Admin</header>,
+vi.mock("@/features/admin-auth/admin-auth.action", () => ({
+  logoutAdmin: vi.fn(),
+}));
+vi.mock("@/components/theme/theme-toggle", () => ({
+  ThemeToggle: () => <button type="button">Theme</button>,
 }));
 vi.mock("@/features/event-settings/event-settings-form", () => ({
   SettingsForm: (props: { shareUrl?: string }) => (
@@ -42,8 +45,10 @@ describe("AdminPage", () => {
     render(await AdminPage());
 
     expect(screen.getByRole("contentinfo")).toBeTruthy();
-    expect(screen.getByText("Settings").getAttribute("data-share-url")).toBe(
-      "https://winner-picker.baithani.example/"
-    );
+    expect(
+      screen
+        .getByText("Settings", { selector: "form" })
+        .getAttribute("data-share-url")
+    ).toBe("https://winner-picker.baithani.example/");
   });
 });

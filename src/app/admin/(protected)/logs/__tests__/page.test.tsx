@@ -21,8 +21,8 @@ vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/features/audit-log/server/audit-log.query", () => ({
   getAdminAuditLogPage: mocks.getAdminAuditLogPage,
 }));
-vi.mock("@/components/layout/admin-header", () => ({
-  AdminHeader: () => <header>Admin</header>,
+vi.mock("@/components/theme/theme-toggle", () => ({
+  ThemeToggle: () => <button type="button">Theme</button>,
 }));
 vi.mock("@/features/audit-log/audit-log-table", () => ({
   LogsTable: () => <div>Logs</div>,

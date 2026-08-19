@@ -1,7 +1,7 @@
 import {
-  MAX_EVENT_RANGE,
-  MIN_EVENT_RANGE,
-} from "@/features/event-settings/event-settings.constant";
+  MAX_DRAW_NUMBER,
+  MIN_DRAW_NUMBER,
+} from "@/shared/draw-pool/draw-pool.constant";
 
 export function getRangeError(
   minValue: string,
@@ -18,8 +18,8 @@ export function getRangeError(
     return "Range values must be whole numbers.";
   }
 
-  if (min < MIN_EVENT_RANGE || max > MAX_EVENT_RANGE) {
-    return `Use numbers from ${MIN_EVENT_RANGE.toLocaleString()} to ${MAX_EVENT_RANGE.toLocaleString()}.`;
+  if (min < MIN_DRAW_NUMBER || max > MAX_DRAW_NUMBER) {
+    return `Use numbers from ${MIN_DRAW_NUMBER.toLocaleString()} to ${MAX_DRAW_NUMBER.toLocaleString()}.`;
   }
 
   if (min >= max) return "Minimum must be lower than maximum.";

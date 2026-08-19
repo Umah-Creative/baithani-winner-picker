@@ -7,8 +7,7 @@ import { createBrandPalette } from "@/shared/brand/brand-color";
 
 import { PickerPreview } from "./picker-preview";
 import { SharedLinkPreview } from "./shared-link-preview";
-
-export type SettingsShareState = "setup" | "draft" | "saved";
+import type { SettingsShareState } from "../event-settings-share.type";
 
 type SettingsPreviewProps = {
   shareUrl?: string;

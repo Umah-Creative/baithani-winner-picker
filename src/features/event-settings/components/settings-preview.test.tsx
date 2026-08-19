@@ -13,7 +13,8 @@ vi.mock("sonner", () => ({
   toast: { error: mocks.toastError },
 }));
 
-import { SettingsPreview, type SettingsShareState } from "./settings-preview";
+import type { SettingsShareState } from "../event-settings-share.type";
+import { SettingsPreview } from "./settings-preview";
 
 const defaultProps = {
   title: "Baithani Night",

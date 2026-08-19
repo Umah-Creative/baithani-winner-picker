@@ -37,7 +37,7 @@ function audioHarness() {
 }
 
 beforeEach(() => {
-  localStorage.clear();
+  window.localStorage.clear();
   mocks.reducedMotion = true;
   vi.spyOn(Math, "random").mockReturnValue(0);
 });
@@ -68,12 +68,12 @@ describe("usePickerController", () => {
     expect(result.current.state.status).toBe("winner");
     expect(result.current.winner).toBe(1);
     expect(result.current.drawnNumbers).toEqual([1]);
-    expect(localStorage.getItem(PICKER_STORAGE_KEY)).toBe("[1]");
+    expect(window.localStorage.getItem(PICKER_STORAGE_KEY)).toBe("[1]");
     expect(audio.engine.playWinner).toHaveBeenCalledWith(false);
 
     act(() => result.current.handleUndoLast());
     expect(result.current.drawnNumbers).toEqual([]);
-    expect(localStorage.getItem(PICKER_STORAGE_KEY)).toBe("[]");
+    expect(window.localStorage.getItem(PICKER_STORAGE_KEY)).toBe("[]");
 
     act(() => result.current.handlePrimaryAction());
     act(() => result.current.handlePrimaryAction());

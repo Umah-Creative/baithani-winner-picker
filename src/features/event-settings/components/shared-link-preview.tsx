@@ -4,7 +4,7 @@ import { CheckIcon, CopyIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { useCopyFeedback } from "../hooks/use-copy-feedback";
-import type { SettingsShareState } from "./settings-preview";
+import type { SettingsShareState } from "../event-settings-share.type";
 import { PreviewLogo } from "./preview-logo";
 
 type SharedLinkPreviewProps = {
