@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { AppFooter } from "@/components/layout/AppFooter";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { isAdminAuthenticated } from "@/lib/auth.service";
-import { getEventSettings } from "@/lib/event-settings.service";
-
-import { LoginForm } from "./LoginForm";
+import { AppFooter } from "@/components/layout/app-footer";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { AdminLoginForm } from "@/features/admin-auth/admin-login-form";
+import { AdminLoginIdentity } from "@/features/admin-auth/admin-login-identity";
+import { isAdminAuthenticated } from "@/features/admin-auth/server/admin-session.service";
+import { getEventSettings } from "@/features/event-settings/server/event-settings.query";
 
 export const metadata: Metadata = {
   title: "Admin Login",
@@ -32,22 +32,8 @@ export default async function AdminLoginPage() {
       </div>
       <div className="flex flex-1 items-center justify-center py-10">
         <div className="w-full max-w-sm">
-          <div className="mb-5 flex items-center gap-3 text-foreground">
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt={`${identity} logo`}
-                className="size-11 rounded-xl border border-border bg-card object-contain p-1"
-              />
-            ) : (
-              <div className="grid size-11 place-items-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
-                B
-              </div>
-            )}
-            <span className="font-semibold">{identity}</span>
-          </div>
-          <LoginForm identity={identity} />
+          <AdminLoginIdentity identity={identity} logoUrl={logoUrl} />
+          <AdminLoginForm identity={identity} />
         </div>
       </div>
       <AppFooter className="w-full pb-4" />

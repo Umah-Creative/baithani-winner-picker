@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import { Toaster } from "sonner";
 
-import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ThemeBootstrap } from "@/components/theme/theme-bootstrap";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { buildEventMetadata } from "@/lib/event-metadata";
-import { getEventSettings } from "@/lib/event-settings.service";
-import { resolveSiteUrl } from "@/lib/site-url";
+import { buildEventMetadata } from "@/features/event-sharing/event-metadata";
+import { DEFAULT_ACCENT_COLOR } from "@/features/event-settings/event-settings.constant";
+import { getEventSettings } from "@/features/event-settings/server/event-settings.query";
+import { resolveSiteUrl } from "@/shared/site-url/resolve-site-url.server";
 import { cn } from "@/lib/utils";
+import { CSP_NONCE_HEADER } from "@/shared/request-context/request-context.constant";
 
 import "./globals.css";
 
@@ -23,22 +27,6 @@ const geistMono = Geist_Mono({
 
 export const dynamic = "force-dynamic";
 
-const THEME_STORAGE_KEY = "baithani-winner-picker:theme";
-const themeScript = `
-  (() => {
-    try {
-      const stored = window.localStorage.getItem("${THEME_STORAGE_KEY}");
-      const theme = stored === "light" || stored === "dark"
-        ? stored
-        : "light";
-      const root = document.documentElement;
-      root.classList.toggle("dark", theme === "dark");
-      root.dataset.theme = theme;
-      root.style.colorScheme = theme;
-    } catch {}
-  })();
-`;
-
 export async function generateMetadata(): Promise<Metadata> {
   const [settings, siteUrl] = await Promise.all([
     getEventSettings(),
@@ -51,7 +39,11 @@ export default async function RootLayout(
   props: Readonly<{ children: React.ReactNode }>
 ) {
   const { children } = props;
-  const settings = await getEventSettings();
+  const [settings, requestHeaders] = await Promise.all([
+    getEventSettings(),
+    headers(),
+  ]);
+  const nonce = requestHeaders.get(CSP_NONCE_HEADER) ?? undefined;
 
   return (
     <html
@@ -65,12 +57,12 @@ export default async function RootLayout(
       )}
       style={
         {
-          "--brand": settings?.accentColor ?? "#d076b4",
+          "--brand": settings?.accentColor ?? DEFAULT_ACCENT_COLOR,
         } as React.CSSProperties
       }
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <ThemeBootstrap nonce={nonce} />
       </head>
       <body className="flex min-h-full flex-col" suppressHydrationWarning>
         <ThemeProvider>

@@ -24,6 +24,8 @@
   <a href="#quick-start">Quick start</a>
   ·
   <a href="#production-delivery">Production delivery</a>
+  ·
+  <a href="docs/ARCHITECTURE.md">Architecture guide</a>
 </p>
 
 ## Contents
@@ -40,6 +42,8 @@
 - [Commands](#commands)
 - [Project structure](#project-structure)
 - [Operational notes](#operational-notes)
+- [Security](#security)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## What it does
@@ -68,7 +72,7 @@ flowchart LR
   Card --> Social[WhatsApp and social previews]
 ```
 
-The application uses the Next.js 16 App Router. Server components read event data, server actions validate and persist administrative changes, and Drizzle ORM communicates with PostgreSQL. Presentational components remain transport-free.
+The application uses the Next.js 16 App Router and feature-first ownership. Route boundaries authenticate, load data, and compose feature entrypoints. Server-only feature queries, commands, and services own persistence; presentational components remain transport-free. See the illustrated [architecture guide](docs/ARCHITECTURE.md) for runtime, transaction, and reverse-proxy trust boundaries.
 
 ## Routes
 
@@ -116,16 +120,25 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000). Without a settings row, the public page guides the organizer to `/admin`; the first successful settings save creates the active event.
 
+For a stable named URL—especially across worktrees—Portless is highly recommended:
+
+```bash
+pnpm dev:portless
+```
+
+Portless provides `PORTLESS_URL` to the application. Clear an old local `SITE_URL=http://localhost:3000` override so URL resolution can use the named Portless origin instead of stubbornly pinning itself to localhost like a tiny configuration hostage.
+
 ## Configuration
 
-| Variable         | Required   | Description                                                                                                        |
-| ---------------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
-| `DATABASE_URL`   | Yes        | PostgreSQL connection string used by the application, migrations, and optional seeder.                             |
-| `ADMIN_PASSWORD` | Yes        | Shared password for the protected admin control center.                                                            |
-| `ADMIN_SECRET`   | Yes        | Secret used to sign the eight-hour HTTP-only admin session cookie. Use a long random value.                        |
-| `SITE_URL`       | Production | Public absolute origin used for canonical URLs and shared-link metadata, for example `https://picker.example.org`. |
+| Variable           | Required   | Description                                                                                                                                                          |
+| ------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`     | Yes        | PostgreSQL connection string used by the application, migrations, and optional seeder.                                                                               |
+| `ADMIN_PASSWORD`   | Yes        | Shared password for the protected admin control center.                                                                                                              |
+| `ADMIN_SECRET`     | Yes        | Secret of at least 32 bytes used to sign the 24-hour HTTP-only admin session cookie.                                                                                 |
+| `SITE_URL`         | Production | Public absolute origin used for canonical URLs and shared-link metadata, for example `https://picker.example.org`.                                                   |
+| `TRUST_PROXY_HOPS` | Production | Number of trusted reverse-proxy hops counted from the right side of `X-Forwarded-For`; use `1` only when one direct Dokploy Traefik hop sanitizes forwarded headers. |
 
-Development falls back to `http://localhost:3000` when `SITE_URL` is missing. Production can derive the origin from trusted proxy request headers, but an explicit `SITE_URL` is preferred.
+Development resolves its origin in this order: valid `SITE_URL`, valid `PORTLESS_URL`, then `http://localhost:3000`. Production uses only a validated `SITE_URL`; request Host headers are never canonical metadata input. When production configuration is missing, sharing URLs are omitted and admin copying stays disabled.
 
 ## Admin workflow
 
@@ -138,6 +151,8 @@ Development falls back to `http://localhost:3000` when `SITE_URL` is missing. Pr
 7. Use `/admin/logs` to review access and settings activity.
 
 The public picker opens from the admin utility area in a separate tab, keeping the editing session intact.
+
+Audit timestamps are stored as absolute PostgreSQL `timestamp with time zone` values and projected as UTC ISO strings. The browser renders them in the operator's current IANA timezone with a visible timezone abbreviation. Date filters submit that timezone so selected calendar days map to correct UTC boundaries, including daylight-saving transitions.
 
 ## Sharing and branding
 
@@ -172,7 +187,7 @@ Production uses a prebuilt-image workflow: GitHub Actions verifies the applicati
 
 ```mermaid
 flowchart LR
-  Main["Push to main"] --> Verify["GitHub Actions<br/>format · lint · types"]
+  Main["Push to main"] --> Verify["GitHub Actions<br/>format · lint · types · tests · security"]
   Verify --> Build["Docker Buildx"]
   Build --> Registry["GitHub Container Registry<br/>:production + :git-sha"]
   Registry --> Hook["Dokploy deployment webhook"]
@@ -215,10 +230,13 @@ flowchart LR
    ADMIN_PASSWORD=...
    ADMIN_SECRET=...
    SITE_URL=https://your-public-origin.example
+   TRUST_PROXY_HOPS=1
    ```
 
 4. Copy the application's [Dokploy deployment webhook](https://docs.dokploy.com/docs/core/auto-deploy) into the GitHub Actions repository secret `DOKPLOY_DEPLOY_WEBHOOK_URL`.
 5. Attach the public domain to port `3000`, then push or manually dispatch the workflow from `main`.
+
+In Dokploy's advanced Traefik configuration, apply an application-wide token bucket of 120 requests per minute with burst 60 and IPv6 source grouping at `/64`. This is an operator-owned deployment prerequisite, not something the repository can enable or verify. Once configured, Traefik throttles before traffic reaches Next.js; the application still performs credential-specific lockout and authorization.
 
 On every normal release, checks must pass before either image tag moves. GitHub Actions pushes both tags, calls the webhook, and Dokploy pulls the refreshed `production` image. The container applies pending migrations and starts the standalone Next.js server.
 
@@ -233,23 +251,32 @@ docker build -t baithani-winner-picker .
 docker run --env-file .env.local -p 3000:3000 baithani-winner-picker
 ```
 
+To exercise the generated standalone output without Docker, build first and then use the local launcher. It loads local environment configuration, copies `public` and `.next/static`, links the installed project dependencies into the standalone directory, and starts Next's generated server:
+
+```bash
+pnpm build
+pnpm start
+```
+
 > [!IMPORTANT]
 > Automatic migrations assume one application replica starts at a time. Before scaling to multiple replicas, move migrations into a one-shot deployment job.
 
 ## Commands
 
-| Command            | Purpose                                                         |
-| ------------------ | --------------------------------------------------------------- |
-| `pnpm dev`         | Start the Next.js development server.                           |
-| `pnpm build`       | Create the production build.                                    |
-| `pnpm start`       | Serve a production build outside the standalone container.      |
-| `pnpm test`        | Run the Vitest suite.                                           |
-| `pnpm lint`        | Run ESLint.                                                     |
-| `pnpm check-type`  | Generate route types and run TypeScript without emitting files. |
-| `pnpm prettier`    | Check formatting.                                               |
-| `pnpm db:generate` | Generate Drizzle migrations after schema changes.               |
-| `pnpm db:migrate`  | Apply pending database migrations.                              |
-| `pnpm db:seed`     | Optionally insert the default event settings row when absent.   |
+| Command                                | Purpose                                                             |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| `pnpm dev`                             | Start the Next.js development server.                               |
+| `pnpm dev:portless`                    | Start development through Portless `0.7.0` with a stable named URL. |
+| `pnpm build`                           | Create the production build.                                        |
+| `pnpm start`                           | Prepare assets and run the generated standalone server locally.     |
+| `pnpm test`                            | Run the Vitest suite.                                               |
+| `pnpm lint`                            | Run ESLint.                                                         |
+| `pnpm check-type`                      | Generate route types and run TypeScript without emitting files.     |
+| `pnpm prettier`                        | Check formatting.                                                   |
+| `pnpm audit --prod --audit-level high` | Reject high-severity production dependency advisories.              |
+| `pnpm db:generate`                     | Generate Drizzle migrations after schema changes.                   |
+| `pnpm db:migrate`                      | Apply pending database migrations.                                  |
+| `pnpm db:seed`                         | Optionally insert the default event settings row when absent.       |
 
 ## Project structure
 
@@ -257,22 +284,44 @@ docker run --env-file .env.local -p 3000:3000 baithani-winner-picker
 .
 ├── public/                 Static Baithani identity assets and manifest
 ├── scripts/                Container startup utilities
+├── docs/                   Architecture and engineering rulebook
 ├── src/
-│   ├── app/                App Router pages, server actions, and metadata routes
-│   ├── components/         Shared UI, picker, theme, and layout components
+│   ├── app/                Thin App Router, metadata, and HTTP boundaries
+│   ├── components/         Shared layout, theme, and generated UI primitives
 │   ├── db/                 Drizzle schema, migrations, and optional seeders
-│   └── lib/                Authentication, validation, persistence, and metadata logic
+│   ├── features/           Auth, admin shell, audit, settings, sharing, and picker ownership
+│   ├── shared/             Proven cross-feature brand, URL, request, security, and draw-pool policy
+│   └── lib/utils.ts        shadcn `cn` boundary only
 ├── Dockerfile              Multi-stage production image
 └── package.json            Runtime pins and project commands
 ```
 
 ## Operational notes
 
-- Admin authentication uses one deployment password and a signed HTTP-only cookie; it is not a multi-user identity system.
-- Login failures are rate-limited in application memory. Limits reset when the process restarts and are not shared across replicas.
+- Admin authentication uses one deployment password, constant-time comparison, and a signed HTTP-only `SameSite=Strict` cookie; it is not a multi-user identity system.
+- Five credential failures in 15 minutes lock the client-IP bucket. The sixth and later attempts remain blocked even with the correct password. Limits reset when the process restarts and are not shared across replicas.
+- `proxy.ts` overwrites internal attribution headers, generates every request ID, returns `X-Request-ID`, and applies nonce CSP plus browser hardening headers. Dokploy Traefik remains the TLS/HSTS boundary; its global rate limit exists only after the documented operator configuration is applied.
 - Draw history is browser-local. Starting a new browser session or clearing storage does not change persisted event settings.
 - Uploaded logos support PNG, JPEG, WebP, and GIF up to 5 MB.
+- Uploaded logo MIME claims are verified against file signatures before persistence.
 - Audit metadata is sanitized before display, but operators should still avoid placing secrets in editable event content.
+
+## Security
+
+| Layer                | Repository behavior                                                                                                                             |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin authentication | Constant-time password comparison and a signed, 24-hour HTTP-only `SameSite=Strict` session cookie.                                             |
+| Login abuse          | Five failures in 15 minutes lock the client-IP bucket; a separate Traefik token bucket is operator-configured defense in depth.                 |
+| Request trust        | `proxy.ts` replaces internal attribution headers and issues request IDs; trusted-hop parsing assumes the documented direct-proxy configuration. |
+| Uploaded media       | Logo size, claimed MIME, and PNG/JPEG/WebP/GIF file signatures are validated before persistence.                                                |
+| Audit integrity      | Settings and their audit events commit atomically; authentication audit failures remain best-effort and privacy-safe.                           |
+| Supply chain         | Frozen pnpm installs, pinned CI/container actions, Dependabot, tests, builds, and production dependency auditing guard delivery.                |
+
+Read the [security policy](SECURITY.md) before reporting a vulnerability. Use GitHub private vulnerability reporting, never a public issue, for security-sensitive details.
+
+## Contributing
+
+Focused contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), the [architecture guide](docs/ARCHITECTURE.md), and [support guide](SUPPORT.md) before opening substantial work.
 
 ## License
 
