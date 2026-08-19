@@ -46,6 +46,10 @@ afterEach(() => {
 describe("SettingsForm logo controls", () => {
   it("previews an accepted replacement inside the upload container", async () => {
     const user = userEvent.setup();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: vi.fn(() => "blob:http://localhost:3000/replacement-logo"),
+    });
     render(<SettingsForm settings={settings} />);
 
     const logo = new File(["logo"], "baithani.png", { type: "image/png" });
@@ -183,7 +187,9 @@ describe("SettingsForm logo controls", () => {
   });
 
   it("releases replacement blob URLs when the editor unmounts", async () => {
-    const createObjectURL = vi.fn(() => "blob:replacement-logo");
+    const createObjectURL = vi.fn(
+      () => "blob:http://localhost:3000/replacement-logo"
+    );
     const revokeObjectURL = vi.fn();
     vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
     const user = userEvent.setup();
@@ -196,7 +202,9 @@ describe("SettingsForm logo controls", () => {
     view.unmount();
 
     expect(createObjectURL).toHaveBeenCalledOnce();
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:replacement-logo");
+    expect(revokeObjectURL).toHaveBeenCalledWith(
+      "blob:http://localhost:3000/replacement-logo"
+    );
   });
 });
 

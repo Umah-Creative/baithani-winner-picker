@@ -28,6 +28,33 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(bytes < 1024 * 1024 ? 2 : 1)} MB`;
 }
 
+function getSafeLogoPreviewUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  if (value === "/api/media/logo" || value.startsWith("/api/media/logo?")) {
+    return value;
+  }
+
+  if (typeof window === "undefined") return undefined;
+
+  try {
+    const parsed = new URL(value, window.location.origin);
+
+    if (parsed.protocol === "blob:") {
+      return parsed.origin === window.location.origin
+        ? parsed.toString()
+        : undefined;
+    }
+
+    return parsed.origin === window.location.origin &&
+      parsed.pathname === "/api/media/logo"
+      ? parsed.toString()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function LogoUploadField(props: LogoUploadFieldProps) {
   const {
     hasLogo,
@@ -58,6 +85,7 @@ export function LogoUploadField(props: LogoUploadFieldProps) {
     onVisualChange,
   });
   const message = clientError ?? error;
+  const safeImageUrl = getSafeLogoPreviewUrl(imageUrl);
 
   return (
     <Field data-invalid={Boolean(message)}>
@@ -136,12 +164,22 @@ export function LogoUploadField(props: LogoUploadFieldProps) {
         ) : (
           <>
             <div className="flex min-h-28 w-full items-center justify-center rounded-lg bg-background/70 p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt={imageAlt}
-                className="max-h-28 max-w-full object-contain"
-              />
+              {safeImageUrl ? (
+                <>
+                  {/* Hook-generated blob URLs and the same-origin logo endpoint are URL-allowlisted above. */}
+                  {/* codeql[js/xss-through-dom] */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={safeImageUrl}
+                    alt={imageAlt}
+                    className="max-h-28 max-w-full object-contain"
+                  />
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Logo preview unavailable
+                </p>
+              )}
             </div>
             {state.kind === "replacement" ? (
               <div className="max-w-full">

@@ -53,7 +53,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   Object.defineProperty(URL, "createObjectURL", {
     configurable: true,
-    value: vi.fn(() => "blob:replacement"),
+    value: vi.fn(() => "blob:http://localhost:3000/replacement"),
   });
   Object.defineProperty(URL, "revokeObjectURL", {
     configurable: true,
@@ -77,13 +77,15 @@ describe("useLogoUpload", () => {
     fireEvent.change(input, { target: { files: [replacement] } });
     expect(screen.getByTestId("state").textContent).toBe("replacement");
     expect(screen.getByTestId("image-url").textContent).toBe(
-      "blob:replacement"
+      "blob:http://localhost:3000/replacement"
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Remove" }));
     expect(screen.getByTestId("state").textContent).toBe("marked-removal");
     expect(input.value).toBe("");
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:replacement");
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(
+      "blob:http://localhost:3000/replacement"
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
     expect(screen.getByTestId("state").textContent).toBe("existing");
@@ -119,7 +121,9 @@ describe("useLogoUpload", () => {
     expect(input.files?.[0]).toBe(dropped);
     expect(screen.getByTestId("state").textContent).toBe("replacement");
     view.unmount();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:replacement");
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(
+      "blob:http://localhost:3000/replacement"
+    );
   });
 
   it("rejects unsupported files without dirtying the saved logo", () => {
