@@ -11,7 +11,7 @@ import {
 import {
   getTrustedClientIp,
   readTrustedProxyHops,
-} from "@/shared/request-context/request-context";
+} from "@/shared/request-context/request-context.server";
 import { buildContentSecurityPolicy } from "@/shared/security/content-security-policy";
 
 const PERMISSIONS_POLICY =

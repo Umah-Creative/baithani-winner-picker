@@ -18,7 +18,7 @@ vi.mock("@/components/theme/theme-toggle", () => ({
   ThemeToggle: () => <button type="button">Theme</button>,
 }));
 vi.mock("@/features/admin-auth/admin-login-form", () => ({
-  LoginForm: () => <form>Login</form>,
+  AdminLoginForm: () => <form>Login</form>,
 }));
 
 import AdminLoginPage from "../page";

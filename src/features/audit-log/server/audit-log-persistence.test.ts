@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/db/client", () => ({
   db: { insert: mocks.insert },
 }));
-vi.mock("@/shared/request-context/current-request-context", () => ({
+vi.mock("@/shared/request-context/current-request-context.server", () => ({
   getCurrentRequestContext: mocks.request,
 }));
 

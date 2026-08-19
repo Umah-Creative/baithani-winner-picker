@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { isAdminAuthenticated } from "@/features/admin-auth/server/admin-session.service";
 import { AdminShell } from "@/features/admin-shell/admin-shell";
-import { LogsTable } from "@/features/audit-log/audit-log-table";
+import { AuditLogTable } from "@/features/audit-log/audit-log-table";
 import { getAdminAuditLogPage } from "@/features/audit-log/server/audit-log.query";
 
 export const metadata: Metadata = { title: "Admin audit logs" };
@@ -27,7 +27,7 @@ export default async function AdminLogsPage(props: {
       contentClassName="mt-6"
       showSettingsBackLink
     >
-      <LogsTable page={page} />
+      <AuditLogTable page={page} />
     </AdminShell>
   );
 }

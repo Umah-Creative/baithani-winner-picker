@@ -9,7 +9,7 @@ vi.mock("next/headers", () => ({ headers: mocks.headers }));
 import {
   getCurrentRequestContext,
   getSafeCurrentRequestContext,
-} from "./current-request-context";
+} from "./current-request-context.server";
 
 afterEach(() => {
   vi.clearAllMocks();

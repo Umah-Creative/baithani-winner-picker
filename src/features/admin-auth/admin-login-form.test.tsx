@@ -6,14 +6,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./admin-auth.action", () => ({ loginAdmin: vi.fn() }));
 
-import { LoginForm } from "./admin-login-form";
+import { AdminLoginForm } from "./admin-login-form";
 
 afterEach(cleanup);
 
-describe("LoginForm", () => {
+describe("AdminLoginForm", () => {
   it("autofocuses password and lets an admin reveal it", async () => {
     const user = userEvent.setup();
-    render(<LoginForm identity="Baithani" />);
+    render(<AdminLoginForm identity="Baithani" />);
 
     const password = screen.getByLabelText<HTMLInputElement>("Password");
     expect(document.activeElement).toBe(password);

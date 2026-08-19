@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { constantTimeEqual } from "./constant-time";
+import { constantTimeEqual } from "./constant-time.server";
 
 describe("constantTimeEqual", () => {
   it("accepts identical UTF-8 values and rejects different values or lengths", () => {

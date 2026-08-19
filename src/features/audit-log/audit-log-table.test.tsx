@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import type { AdminAuditLogPage } from "./audit-log-view.type";
 
-import { LogsTable } from "./audit-log-table";
+import { AuditLogTable } from "./audit-log-table";
 import { serializeLogFilterDate } from "./audit-log-date";
 
 afterEach(cleanup);
@@ -37,13 +37,13 @@ const basePage: AdminAuditLogPage = {
   },
 };
 
-describe("LogsTable", () => {
+describe("AuditLogTable", () => {
   it("serializes local calendar dates without a UTC day shift", () => {
     expect(serializeLogFilterDate(new Date(2026, 7, 14))).toBe("2026-08-14");
   });
 
   it("uses composed filters and hides single-page pagination noise", () => {
-    const { container } = render(<LogsTable page={basePage} />);
+    const { container } = render(<AuditLogTable page={basePage} />);
 
     expect(container.querySelector("select")).toBeNull();
     expect(screen.getAllByRole("combobox")).toHaveLength(2);
@@ -55,7 +55,7 @@ describe("LogsTable", () => {
   });
 
   it("shows human labels, explicit diff columns, and omits unavailable metadata", () => {
-    render(<LogsTable page={basePage} />);
+    render(<AuditLogTable page={basePage} />);
 
     expect(
       screen.getByRole("heading", { name: "Event settings updated" })
@@ -77,7 +77,7 @@ describe("LogsTable", () => {
 
   it("keeps compatible filter values and reveals active advanced filters", () => {
     render(
-      <LogsTable
+      <AuditLogTable
         page={{
           ...basePage,
           filters: {
@@ -129,9 +129,9 @@ describe("LogsTable", () => {
         requestId: "req-12",
       },
     };
-    const { rerender } = render(<LogsTable page={filteredPage} />);
+    const { rerender } = render(<AuditLogTable page={filteredPage} />);
 
-    rerender(<LogsTable page={basePage} />);
+    rerender(<AuditLogTable page={basePage} />);
 
     const [actionSelect, outcomeSelect] = screen.getAllByRole("combobox");
     expect(actionSelect.textContent).toContain("All actions");
@@ -153,7 +153,7 @@ describe("LogsTable", () => {
 
   it("renders semantic link pagination only when multiple pages exist", () => {
     render(
-      <LogsTable
+      <AuditLogTable
         page={{
           ...basePage,
           total: 100,

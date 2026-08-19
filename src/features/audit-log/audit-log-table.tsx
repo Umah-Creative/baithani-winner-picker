@@ -1,16 +1,16 @@
 import type { AdminAuditLogPage } from "./audit-log-view.type";
 import { serializeAdminLogFilters } from "./audit-log-filter";
 import { AuditLogEntry } from "./components/audit-log-entry";
-import { LogFilters } from "./components/audit-log-filters";
+import { AuditLogFilters } from "./components/audit-log-filters";
 import { AuditLogPagination } from "./components/audit-log-pagination";
 
-export function LogsTable(props: { page: AdminAuditLogPage }) {
+export function AuditLogTable(props: { page: AdminAuditLogPage }) {
   const { page } = props;
   const filterStateKey = serializeAdminLogFilters(page.filters);
 
   return (
     <div className="flex flex-col gap-5">
-      <LogFilters key={filterStateKey} filters={page.filters} />
+      <AuditLogFilters key={filterStateKey} filters={page.filters} />
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-4">
           <p className="font-medium text-foreground">

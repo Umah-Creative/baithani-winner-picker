@@ -20,7 +20,7 @@ import { AuditLogActiveFilters } from "./audit-log-active-filters";
 import { AuditLogAdvancedFields } from "./audit-log-advanced-fields";
 import { AuditLogDateField } from "./audit-log-date-field";
 
-export function LogFilters(props: { filters: AdminLogFilters }) {
+export function AuditLogFilters(props: { filters: AdminLogFilters }) {
   const { filters } = props;
   const controller = useAuditLogFilters(filters);
 

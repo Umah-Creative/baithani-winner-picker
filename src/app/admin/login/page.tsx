@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AppFooter } from "@/components/layout/app-footer";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { LoginForm } from "@/features/admin-auth/admin-login-form";
+import { AdminLoginForm } from "@/features/admin-auth/admin-login-form";
 import { AdminLoginIdentity } from "@/features/admin-auth/admin-login-identity";
 import { isAdminAuthenticated } from "@/features/admin-auth/server/admin-session.service";
 import { getEventSettings } from "@/features/event-settings/server/event-settings.query";
@@ -33,7 +33,7 @@ export default async function AdminLoginPage() {
       <div className="flex flex-1 items-center justify-center py-10">
         <div className="w-full max-w-sm">
           <AdminLoginIdentity identity={identity} logoUrl={logoUrl} />
-          <LoginForm identity={identity} />
+          <AdminLoginForm identity={identity} />
         </div>
       </div>
       <AppFooter className="w-full pb-4" />

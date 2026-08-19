@@ -25,7 +25,7 @@ vi.mock("@/components/theme/theme-toggle", () => ({
   ThemeToggle: () => <button type="button">Theme</button>,
 }));
 vi.mock("@/features/audit-log/audit-log-table", () => ({
-  LogsTable: () => <div>Logs</div>,
+  AuditLogTable: () => <div>Logs</div>,
 }));
 
 import AdminLogsPage from "../page";

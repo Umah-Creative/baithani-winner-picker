@@ -2,7 +2,7 @@ import "server-only";
 
 import { headers } from "next/headers";
 
-import { readInternalRequestContext } from "./request-context";
+import { readInternalRequestContext } from "./request-context.server";
 import type { RequestContext } from "./request-context.type";
 
 const EMPTY_REQUEST_CONTEXT: RequestContext = {

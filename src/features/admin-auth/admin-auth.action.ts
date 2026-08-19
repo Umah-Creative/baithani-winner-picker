@@ -14,8 +14,8 @@ import {
   getLoginRateLimitKey,
   recordLoginFailure,
 } from "@/features/admin-auth/server/admin-login-rate-limit";
-import { getSafeCurrentRequestContext } from "@/shared/request-context/current-request-context";
-import { constantTimeEqual } from "@/shared/security/constant-time";
+import { getSafeCurrentRequestContext } from "@/shared/request-context/current-request-context.server";
+import { constantTimeEqual } from "@/shared/security/constant-time.server";
 
 import type { LoginActionState } from "./admin-auth.type";
 

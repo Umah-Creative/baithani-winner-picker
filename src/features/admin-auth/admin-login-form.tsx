@@ -11,7 +11,7 @@ import type { LoginActionState } from "./admin-auth.type";
 
 const initialState: LoginActionState = { status: "idle" };
 
-export function LoginForm(props: { identity: string }) {
+export function AdminLoginForm(props: { identity: string }) {
   const { identity } = props;
   const [state, formAction, pending] = useActionState(loginAdmin, initialState);
   const [passwordVisible, setPasswordVisible] = useState(false);

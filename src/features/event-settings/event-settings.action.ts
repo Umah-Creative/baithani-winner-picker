@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { isAdminAuthenticated } from "@/features/admin-auth/server/admin-session.service";
 import { writeAdminAuditLog } from "@/features/audit-log/server/audit-log.service";
-import { getSafeCurrentRequestContext } from "@/shared/request-context/current-request-context";
+import { getSafeCurrentRequestContext } from "@/shared/request-context/current-request-context.server";
 
 import type { EventSettingsActionState } from "./event-settings-action.type";
 import { saveEventSettings } from "./server/event-settings.command";

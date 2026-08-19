@@ -19,7 +19,7 @@ vi.mock("./server/admin-session.service", () => ({
 vi.mock("@/features/audit-log/server/audit-log.service", () => ({
   writeAdminAuditLog: mocks.writeAdminAuditLog,
 }));
-vi.mock("@/shared/request-context/current-request-context", () => ({
+vi.mock("@/shared/request-context/current-request-context.server", () => ({
   getSafeCurrentRequestContext: mocks.request,
 }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));

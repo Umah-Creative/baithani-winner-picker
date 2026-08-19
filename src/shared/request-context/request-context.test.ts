@@ -4,7 +4,7 @@ import {
   getTrustedClientIp,
   normalizeIpAddress,
   readInternalRequestContext,
-} from "./request-context";
+} from "./request-context.server";
 
 describe("request context", () => {
   it("selects the trusted hop from the right side of X-Forwarded-For", () => {

@@ -1,7 +1,7 @@
 import "server-only";
 
-import { buildAdminAuditEvent } from "@/features/audit-log/audit-log-event";
-import type { AdminAuditEvent } from "@/features/audit-log/audit-log.type";
+import { buildAdminAuditEvent } from "@/features/audit-log/server/audit-log-event";
+import type { AdminAuditEvent } from "@/features/audit-log/server/audit-log-event.type";
 
 import type {
   EventSettingsAuditContext,
