@@ -1,11 +1,19 @@
 import "server-only";
 
-import { createHash, timingSafeEqual } from "node:crypto";
-
-function digest(value: string): Buffer {
-  return createHash("sha256").update(value, "utf8").digest();
-}
+import { timingSafeEqual } from "node:crypto";
 
 export function constantTimeEqual(left: string, right: string): boolean {
-  return timingSafeEqual(digest(left), digest(right));
+  const leftBytes = Buffer.from(left, "utf8");
+  const rightBytes = Buffer.from(right, "utf8");
+  const comparisonLength = Math.max(leftBytes.length, rightBytes.length, 1);
+  const paddedLeft = Buffer.alloc(comparisonLength);
+  const paddedRight = Buffer.alloc(comparisonLength);
+
+  leftBytes.copy(paddedLeft);
+  rightBytes.copy(paddedRight);
+
+  return (
+    timingSafeEqual(paddedLeft, paddedRight) &&
+    leftBytes.length === rightBytes.length
+  );
 }
